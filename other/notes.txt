@@ -1,0 +1,11 @@
+
+After adding or changing a test:
+
+cmake --build build --target pbvfx_tests --parallel
+ctest --test-dir build --output-on-failure
+
+If you add a brand-new test source file and CMake does not detect it, reconfigure:
+
+cmake -S . -B build -DBUILD_TESTING=ON
+cmake --build build --target pbvfx_tests --parallel
+ctest --test-dir build --output-on-failure
