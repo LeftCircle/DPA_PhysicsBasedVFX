@@ -5,7 +5,6 @@
 #include "ImplicitColors.h"
 #include "Fields.h"
 
-
 using namespace std;
 namespace lux
 {
@@ -20,7 +19,6 @@ ScalarField ScalarField::operator+( const ScalarField& e2 ) { return add(*this,e
 ColorField ColorField::operator+( const ColorField& e2 ) { return add(*this,e2); }
 VectorField VectorField::operator+( const VectorField& e2 ) { return add(*this,e2); }
 MatrixField MatrixField::operator+( const MatrixField& e2 ) { return MatrixField( new AddMatrixVolume(*this,e2) ); }
-
 
 
 ScalarField constant( const float v ) { return ScalarField( new ConstantVolume(v) ); }

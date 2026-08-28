@@ -156,8 +156,8 @@ class Volume : public VolumeBase
     virtual ~Volume(){}
 
 
-   typedef U volumeDataType;
-   typedef typename GradType<U>::GType volumeGradType;
+   using volumeDataType = U;
+   using volumeGradType = typename GradType<U>::GType;
 
    virtual const volumeDataType eval( const Vector& P ) const { volumeDataType base; base = base - base; return base; }
    virtual const volumeGradType grad( const Vector& P ) const 
@@ -186,7 +186,12 @@ class Volume : public VolumeBase
    void setFDSize( int nb ){ gradParams.setNbTerms( nb ); }
    void setFDStep( double dx ){ gradParams.setStep( dx ); }
    void setFDStep( double dx, double dy, double dz ){ gradParams.setStep( dx, dy, dz); }
+
+   virtual std::shared_ptr<Volume<U>> operator+( const std::shared_ptr<Volume<U>>& e2 );
 };
+
+template<typename T>
+using VolumeSPtr = std::shared_ptr<Volume<T>>;
 
 typedef Volume<float>* VolumeFloatPtr;
 typedef Volume<Color>* VolumeColorPtr;

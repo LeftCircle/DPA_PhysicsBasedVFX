@@ -9,7 +9,7 @@
 #include "implicit_fields.h"
 #include "field_operations.h"
 
-using namespace lux_bb;
+using namespace lux;
 
 TEST_CASE("Testing templated ConstField"){
     // 1.) Create two constant scalar fields
@@ -19,19 +19,24 @@ TEST_CASE("Testing templated ConstField"){
     lux::ScalarField b = SF(new lux::ConstantVolume(5));
 
 
+
     // Create two templated ConstField<float>
     std::shared_ptr<ConstantField<float>> a2 = std::make_shared<ConstantField<float>>(7);
     std::shared_ptr<ConstantField<float>> b2 = std::make_shared<ConstantField<float>>(5);
 
     // Add fields together
     lux::AddVolume c(a, b);
-    DoubleHomoField<float> c2(a2, b2);
+    AddFields<float> c2(a2, b2);
 
-    //DoubleHomoField<float> c3 = a2 + b2;
+    lux::ScalarField d = a + b;
+    std::shared_ptr<Volume<float>> d2 = a2 + b2;
 
 
     // Confirm evaulation matches
     REQUIRE(c.eval(lux::Vector(3, 3, 3)) == 12);
     REQUIRE(c2.eval(lux::Vector(3, 3, 3)) == 12);
-    //REQUIRE(c3.eval(lux::Vector(3, 3, 3)) == 12);
+    REQUIRE(d->eval(lux::Vector(3, 3, 3)) == 12);
+    REQUIRE(d2.eval(lux::Vector(3, 3, 3)) == 12);
+
+    REQUIRE(true);
 }
