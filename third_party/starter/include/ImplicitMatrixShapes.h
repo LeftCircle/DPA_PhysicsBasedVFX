@@ -1,99 +1,99 @@
 
-#ifndef __IMPLICITMATRIXSHAPES_H__
-#define __IMPLICITMATRIXSHAPES_H__
+// #ifndef __IMPLICITMATRIXSHAPES_H__
+// #define __IMPLICITMATRIXSHAPES_H__
 
-#include "Volume.h"
-#include <cmath>
-#include <vector>
-#include <iostream>
-
-
-
-namespace lux
-{
-
-class ConstantMatrixVolume: public Volume<Matrix>
-{
-  public:
-
-    ConstantMatrixVolume( const Matrix& m );
-   ~ConstantMatrixVolume(){}
-
-    const Matrix eval( const Vector& P ) const;
-
-
-    virtual std::string typelabel() 
-    { 
-       std::string lbl = "Constant";
-       return lbl;
-    }
-
-  private:
-
-    Matrix elem;
-
-};
+// #include "Volume.h"
+// #include <cmath>
+// #include <vector>
+// #include <iostream>
 
 
 
-class AddMatrixVolume: public Volume<Matrix>
-{
-  public:
+// namespace lux
+// {
 
-    AddMatrixVolume( Volume<Matrix>* m1, Volume<Matrix>* m2 );
-    AddMatrixVolume( const MatrixField& m1, const MatrixField& m2 );
-   ~AddMatrixVolume(){}
+// class ConstantMatrixVolume: public Volume<Matrix>
+// {
+//   public:
 
-    const Matrix eval( const Vector& P ) const;
+//     ConstantMatrixVolume( const Matrix& m );
+//    ~ConstantMatrixVolume(){}
 
-
-    virtual std::string typelabel() 
-    { 
-       std::string lbl = "Add";
-       lbl = lbl + "(";
-       lbl = lbl + elem1->typelabel();
-       lbl = lbl + ",";
-       lbl = lbl + elem2->typelabel();
-       lbl = lbl + ")";
-       return lbl;
-    }
+//     const Matrix eval( const Vector& P ) const;
 
 
-  private:
+//     virtual std::string typelabel() 
+//     { 
+//        std::string lbl = "Constant";
+//        return lbl;
+//     }
 
-    MatrixField elem1, elem2;
+//   private:
 
-};
+//     Matrix elem;
+
+// };
 
 
 
+// class AddMatrixVolume: public Volume<Matrix>
+// {
+//   public:
 
-class ExpMatrixVolume: public Volume<Matrix>
-{
-  public:
+//     AddMatrixVolume( Volume<Matrix>* m1, Volume<Matrix>* m2 );
+//     AddMatrixVolume( const MatrixField& m1, const MatrixField& m2 );
+//    ~AddMatrixVolume(){}
 
-    ExpMatrixVolume( Volume<Matrix>* v1 );
-    ExpMatrixVolume( const MatrixField& v1 );
-   ~ExpMatrixVolume(){}
-
-    const Matrix eval( const Vector& P ) const;
-
-
-    virtual std::string typelabel() 
-    { 
-       std::string lbl = "Exp";
-       lbl = lbl + "(";
-       lbl = lbl + elem1->typelabel();
-       lbl = lbl + ")";
-       return lbl;
-    }
-
-  private:
-
-    MatrixField elem1;
-
-};
+//     const Matrix eval( const Vector& P ) const;
 
 
-}
-#endif
+//     virtual std::string typelabel() 
+//     { 
+//        std::string lbl = "Add";
+//        lbl = lbl + "(";
+//        lbl = lbl + elem1->typelabel();
+//        lbl = lbl + ",";
+//        lbl = lbl + elem2->typelabel();
+//        lbl = lbl + ")";
+//        return lbl;
+//     }
+
+
+//   private:
+
+//     MatrixField elem1, elem2;
+
+// };
+
+
+
+
+// class ExpMatrixVolume: public Volume<Matrix>
+// {
+//   public:
+
+//     ExpMatrixVolume( Volume<Matrix>* v1 );
+//     ExpMatrixVolume( const MatrixField& v1 );
+//    ~ExpMatrixVolume(){}
+
+//     const Matrix eval( const Vector& P ) const;
+
+
+//     virtual std::string typelabel() 
+//     { 
+//        std::string lbl = "Exp";
+//        lbl = lbl + "(";
+//        lbl = lbl + elem1->typelabel();
+//        lbl = lbl + ")";
+//        return lbl;
+//     }
+
+//   private:
+
+//     MatrixField elem1;
+
+// };
+
+
+// }
+// #endif

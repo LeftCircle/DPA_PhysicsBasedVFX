@@ -2,21 +2,21 @@
 
 #include <memory>
 
-#include "Volume.h"
+#include "volume.h"
 
 namespace lux{
 
 template <typename T>
-class DoubleHomoField : Volume<T>{
+class FieldOperator : public Volume<T>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	DoubleHomoField(const VolumeSPtr<T>& a, const VolumeSPtr<T>& b): 
+	FieldOperator(const VolumeSPtr<T>& a, const VolumeSPtr<T>& b): 
 		_a(a), _b(b) {};
-	~DoubleHomoField() = default;
+	~FieldOperator() = default;
 
-	//const volumeDataType eval( const Vector& P ) const override = 0;
+    virtual const volumeDataType eval( const Vector& P ) const override = 0;
    	//virtual const volumeGradType grad( const Vector& P ) const override {}
 
 protected:
@@ -26,12 +26,12 @@ protected:
 };
 
 template <typename T>
-class AddFields : DoubleHomoField<T>{
+class AddFields : public FieldOperator<T>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	AddFields(const VolumeSPtr<T>& a, const VolumeSPtr<T>& b) : DoubleHomoField<T>(a, b) {}
+	AddFields(const VolumeSPtr<T>& a, const VolumeSPtr<T>& b) : FieldOperator<T>(a, b) {}
 
 	const volumeDataType eval (const Vector& p) const override {
 		return this->_a->eval(p) + this->_b->eval(p);
