@@ -3,24 +3,42 @@
 
 #include "volume.h"
 #include "field_operations.h"
+#include "scalar_fields.h"
+#include "implicit_fields.h"
+
 
 namespace lux{
 
-    
-template <typename T>
-std::shared_ptr<Volume<T>> add(const VolumeSPtr<T>& a, const VolumeSPtr<T>& b) {
-    //return std::dynamic_pointer_cast<Volume<T>>(make_shared<AddFields<T>>(a, b));
-    //return std::shared_ptr<Volume<T>>(new AddFields(a, b));
-    return std::make_shared<AddFields<T>>(a, b);
+
+// ---------------------------------------------------------------------------------
+// Helper functions
+// ---------------------------------------------------------------------------------
+
+template <typename T, typename U>
+std::shared_ptr<Volume<T>> add(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) {
+    return std::make_shared<AddFields<T, U>>(a, b);
 }
 
-template <typename T>
-std::shared_ptr<Volume<T>> operator+(const VolumeSPtr<T>& a,
-                                     const VolumeSPtr<T>& b) {
-    return add(a, b);
+
+template <typename T, typename U>
+std::shared_ptr<Volume<T>> subtract(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) {
+    return std::make_shared<SubtractFields<T, U>>(a, b);
 }
 
+
+// ---------------------------------------------------------------------------------
+// fields!
+// ---------------------------------------------------------------------------------
+template<typename T>
+VolumeSPtr<T> make_constant(const T& t){
+    return std::make_shared<ConstantField<T>>(t);
+} 
+
+VolumeSPtr<float> make_plane(const Vector& point, const Vector& normal) {
+    return std::make_shared<PlaneField>(point, normal);
 }
+
+} // end namespace lux
 
 
 

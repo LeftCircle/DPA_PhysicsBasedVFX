@@ -13,7 +13,7 @@ public:
     using typename Volume<T>::volumeDataType;
     using typename Volume<T>::volumeGradType;
 
-    ConstantField( const T v ) : _value(v), _gradvalue{} {}
+    ConstantField( const T v ) : _value(v) {}
     ~ConstantField() = default;
     
     const volumeDataType eval( const Vector& P ) const override { return _value; }
