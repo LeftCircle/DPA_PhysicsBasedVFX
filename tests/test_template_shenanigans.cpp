@@ -70,6 +70,20 @@ TEST_CASE("Testing templated Field operations"){
     vspf powf = pow(plane1, power_to);
     REQUIRE(powf->eval(eval_point) == std::pow(p1_eval, power_to));
     REQUIRE(powf->grad(eval_point) == power_to * std::pow(p1_eval, power_to - 1.0) * normal);
+
+    float scale_val = 4.5;
+    vspf scalef = scale(plane1, scale_val);
+    float expected_eval = normal * ((eval_point / scale_val) - point);
+    REQUIRE(scalef->eval(eval_point) == expected_eval);
+    REQUIRE(scalef->grad(eval_point) == normal / scale_val);
+
+    Vector translation_val = Vector(-4, 3, 100);
+    vspf translate_f = translate(plane1, translation_val);
+    expected_eval = normal * ((eval_point - translation_val) - point);
+    REQUIRE(translate_f->eval(eval_point) == expected_eval);
+    REQUIRE(translate_f->grad(eval_point) == normal);
+
+
 }
 
 

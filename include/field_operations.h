@@ -106,7 +106,7 @@ public:
 
 	const volumeGradType grad(const Vector& p) const override {
 		auto b_eval = this->_b->eval(p);
-		if (b_eval == 0.0){
+		if (b_eval == U{}){
 			return {};
 		} else{
 			return this->_a->grad(p) / b_eval + this->_b->grad(p) * this->_a->eval(p) / (b_eval * b_eval);
@@ -223,23 +223,80 @@ public:
 };
 
 
-class PowField : public SingleFieldOperator<float>{
+// ---------------------------------------------------------------------------------
+// Operators requiring a single field a non field value
+// ---------------------------------------------------------------------------------
+
+template <typename T, typename U>
+class FieldValOperator : public Volume<T>{
+public:
+	using typename Volume<T>::volumeDataType;
+	using typename Volume<T>::volumeGradType;
+
+	FieldValOperator(const VolumeSPtr<T>& a, const U& b): _a(a), _b(b) {};
+	~FieldValOperator() = default;
+
+    virtual const volumeDataType eval( const Vector& P ) const override = 0;
+   	//virtual const volumeGradType grad( const Vector& P ) const override {}
+
+protected:
+	std::shared_ptr<Volume<T>> _a;
+	U _b;
+
+};
+
+class PowField : public FieldValOperator<float, float>{
 public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	PowField(const VolumeSPtr<float>& a, const float to_power) : SingleFieldOperator<float>(a), _to_power(to_power) {}
+	PowField(const VolumeSPtr<float>& a, const float to_power) : FieldValOperator<float, float>(a, to_power) {}
 
 	const volumeDataType eval (const Vector& p) const override {
-		return std::pow(this->_a->eval(p), _to_power);
+		return std::pow(this->_a->eval(p), this->_b);
 	}
 
 	const volumeGradType grad(const Vector& p) const override { 
-        return _to_power * std::pow(this->_a->eval(p), _to_power - 1.0) * this->_a->grad(p);
+        return this->_b * std::pow(this->_a->eval(p), this->_b - 1.0) * this->_a->grad(p);
     }
+};
 
-private:
-	float _to_power;
+template<typename T, typename U>
+class ScaleField : public FieldValOperator<T, U>{
+public:
+	using typename Volume<T>::volumeDataType;
+	using typename Volume<T>::volumeGradType;
+
+	ScaleField(const VolumeSPtr<T>& a, const U& scale) : FieldValOperator<T, U>(a, scale) {}
+
+	const volumeDataType eval (const Vector& p) const override {
+		return this->_a->eval(p / this->_b);
+	}
+
+	const volumeGradType grad(const Vector& p) const override { 
+        if (this->_b == U{}){
+			return {};
+		} else{
+			return this->_a->grad(p / this->_b) / this->_b;
+		}
+    }
+};
+
+template<typename T>
+class TranslateField : public FieldValOperator<T, Vector>{
+public:
+	using typename Volume<T>::volumeDataType;
+	using typename Volume<T>::volumeGradType;
+
+	TranslateField(const VolumeSPtr<T>& a, const Vector& delta_x) : FieldValOperator<T, Vector>(a, delta_x) {}
+
+	const volumeDataType eval (const Vector& p) const override {
+		return this->_a->eval(p - this->_b);
+	}
+
+	const volumeGradType grad(const Vector& p) const override { 
+        return this->_a->grad(p - this->_b);
+    }
 };
 
 
