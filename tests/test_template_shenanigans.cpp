@@ -38,9 +38,38 @@ TEST_CASE("Testing templated Field operations"){
     Vector eval_point(7, 7, -7);
     float p1_eval = normal * (eval_point - point);
     float p2_eval = normal2 * (eval_point - point2);
-    // vspf negate = -plane1;
-    // REQUIRE(negate->eval(eval_point) == -p1_eval);
-    // REQUIRE(negate->grad(eval_point) == -normal); 
+    vspf negate = -plane1;
+    REQUIRE(negate->eval(eval_point) == -p1_eval);
+    REQUIRE(negate->grad(eval_point) == -normal);
+
+    vspf divide = plane1 / a;
+    REQUIRE(divide->eval(eval_point) == p1_eval / a_val);
+    REQUIRE(divide->grad(eval_point) == normal / a_val);
+
+    vspf divide_consts = a / b;
+    REQUIRE(divide_consts->grad(eval_point) == Vector());
+
+
+    vspf exp_f = exp(plane1);
+    REQUIRE(exp_f->eval(eval_point) == std::exp(p1_eval));
+    REQUIRE(exp_f->grad(eval_point) == std::exp(p1_eval) * normal);
+
+    vspf logf = log(plane1);
+    REQUIRE(logf->eval(eval_point) == std::log(p1_eval));
+    REQUIRE(logf->grad(eval_point) == normal / p1_eval);
+
+    vspf sinf = sin(plane1);
+    REQUIRE(sinf->eval(eval_point) == std::sin(p1_eval));
+    REQUIRE(sinf->grad(eval_point) == std::cos(p1_eval) * normal);
+
+    vspf cosf = cos(plane1);
+    REQUIRE(cosf->eval(eval_point) == std::cos(p1_eval));
+    REQUIRE(cosf->grad(eval_point) == -std::sin(p1_eval) * normal);
+
+    float power_to = 3.0;
+    vspf powf = pow(plane1, power_to);
+    REQUIRE(powf->eval(eval_point) == std::pow(p1_eval, power_to));
+    REQUIRE(powf->grad(eval_point) == power_to * std::pow(p1_eval, power_to - 1.0) * normal);
 }
 
 
