@@ -67,7 +67,8 @@ TEST_CASE("Testing templated Field operations"){
     REQUIRE(cosf->grad(eval_point) == -std::sin(p1_eval) * normal);
 
     float power_to = 3.0;
-    vspf powf = pow(plane1, power_to);
+    vspf pow_field = make_constant<float>(power_to);
+    vspf powf = pow(plane1, pow_field);
     REQUIRE(powf->eval(eval_point) == std::pow(p1_eval, power_to));
     REQUIRE(powf->grad(eval_point) == power_to * std::pow(p1_eval, power_to - 1.0) * normal);
 

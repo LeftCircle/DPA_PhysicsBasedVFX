@@ -42,13 +42,13 @@ VolumeSPtr<float> cos(const VolumeSPtr<float>& a){
     return std::make_shared<CosField>(a);
 }
 
-VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const float to_power){
+VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const VolumeSPtr<float>& to_power){
     return std::make_shared<PowField>(a, to_power);
 }
 
 template<typename T, typename U>
 VolumeSPtr<T> scale(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b){
-    return std::make_shared<ScaleField<T, VolumeSPtr<U>>>(a, b);
+    return std::make_shared<ScaleField<T, U>>(a, b);
 }
 
 template<typename T>
