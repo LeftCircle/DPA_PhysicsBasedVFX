@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <type_traits>
+#include <tuple>
+#include <cstddef>
 
 #include "volume.h"
 
@@ -10,6 +12,27 @@ namespace lux{
 // ---------------------------------------------------------------------------------
 // Templated field operators
 // --------------------------------------------------------------------------------- 
+
+template <typename T, typename ... Values>
+class VariadicFieldOperator : public Volume<T>{
+public:
+	using typename Volume<T>::volumeDataType;
+	using typename Volume<T>::volumeGradType;
+
+	template <typename... Args>
+	VariadicFieldOperator(VolumeSPtr<T> a, Args&&... args): 
+		_a(std::move(a)), _values(std::forward<Args>(args)...) {}
+	~VariadicFieldOperator() = default;
+
+    virtual const volumeDataType eval( const Vector& P ) const override = 0;
+
+   	// Keeping base class grad implementation and allowing child classes to override
+    //virtual const volumeGradType grad( const Vector& P ) const override {}
+
+protected:
+	std::shared_ptr<Volume<T>> _a;
+	std::tuple<Values ...> _values;
+};
 
 template <typename T, typename U>
 class FieldOperator : public Volume<T>{
@@ -29,46 +52,47 @@ public:
 protected:
 	std::shared_ptr<Volume<T>> _a;
 	std::shared_ptr<Volume<U>> _b;
-
 };
 
 // Pull grad type from T
 template <typename T, typename U>
-class AddFields : public FieldOperator<T, U>{
+class AddFields : public VariadicFieldOperator<T, VolumeSPtr<U>>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	AddFields(const VolumeSPtr<T>& a, const VolumeSPtr<T>& b) : FieldOperator<T, U>(a, b) {}
+	AddFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : VariadicFieldOperator<T, VolumeSPtr<U>>(a, b) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return this->_a->eval(p) + this->_b->eval(p);
+	const volumeDataType eval(const Vector& p) const override {
+		return this->_a->eval(p) + std::get<0>(this->_values)->eval(p);
 	}
 
-	const volumeGradType grad(const Vector& p) const override { return this->_a->grad(p) + this->_b->grad(p); }
-
+	const volumeGradType grad(const Vector& p) const override { 
+		return this->_a->grad(p) + std::get<0>(this->_values)->grad(p); 
+	}
 };
 
 template <typename T, typename U>
-class SubtractFields : public FieldOperator<T, U>{
+class SubtractFields : public VariadicFieldOperator<T, VolumeSPtr<U>>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	SubtractFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	SubtractFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : VariadicFieldOperator<T, VolumeSPtr<U>>(a, b) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return this->_a->eval(p) - this->_b->eval(p);
+	const volumeDataType eval(const Vector& p) const override {
+		return this->_a->eval(p) - std::get<0>(this->_values)->eval(p);
 	}
 
-	const volumeGradType grad(const Vector& p) const override { return this->_a->grad(p) - this->_b->grad(p); }
-
+	const volumeGradType grad(const Vector& p) const override { 
+		return this->_a->grad(p) - std::get<0>(this->_values)->grad(p); 
+	}
 };
 
 // NOTE -> the first type is used to determine the gradient type. 
 // ie <vector, float> will return a gradient of a matrix
 template <typename T, typename U>
-class MultiplyFields : public FieldOperator<T, U>{
+class MultiplyFields : public VariadicFieldOperator<T, VolumeSPtr<U>>{
 	static_assert(
 		!(std::is_same_v<T, float> && std::is_same_v<U, Vector>),
 		"Multiplication only supports <Vector, float>, not <float, Vector>"
@@ -77,19 +101,20 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	MultiplyFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	MultiplyFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : VariadicFieldOperator<T, VolumeSPtr<U>>(a, b) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return this->_a->eval(p) * this->_b->eval(p);
+	const volumeDataType eval(const Vector& p) const override {
+		return this->_a->eval(p) * std::get<0>(this->_values)->eval(p);
 	}
 
 	const volumeGradType grad(const Vector& p) const override { 
-        return this->_a->grad(p) * this->_b->eval(p) + this->_a->eval(p) * this->_b->grad(p);
+        return this->_a->grad(p) * std::get<0>(this->_values)->eval(p) + this->_a->eval(p) * 
+				std::get<0>(this->_values)->grad(p);
     }
 };
 
 template <typename T, typename U>
-class DivideFields : public FieldOperator<T, U>{
+class DivideFields : public VariadicFieldOperator<T, VolumeSPtr<U>>{
 	static_assert(
 		!(std::is_same_v<T, float> && std::is_same_v<U, Vector>),
 		"Divide only supports <Vector, float>, not <float, Vector>"
@@ -98,18 +123,24 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	DivideFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	DivideFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : VariadicFieldOperator<T, VolumeSPtr<U>>(a, b) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return this->_a->eval(p) / this->_b->eval(p);
+	const volumeDataType eval(const Vector& p) const override {
+		auto b_eval = std::get<0>(this->_values)->eval(p);
+		if (b_eval == U{}){
+			return {};
+		} else {
+			return this->_a->eval(p) / b_eval;
+		}
 	}
 
 	const volumeGradType grad(const Vector& p) const override {
-		auto b_eval = this->_b->eval(p);
+		auto b_eval = std::get<0>(this->_values)->eval(p);
 		if (b_eval == U{}){
 			return {};
 		} else{
-			return this->_a->grad(p) / b_eval + this->_b->grad(p) * this->_a->eval(p) / (b_eval * b_eval);
+			return this->_a->grad(p) / b_eval + std::get<0>(this->_values)->grad(p) * 
+				   this->_a->eval(p) / (b_eval * b_eval);
 		}
     }
 };
@@ -137,14 +168,14 @@ protected:
 
 
 template <typename T>
-class NegateField : public SingleFieldOperator<T>{
+class NegateField : public VariadicFieldOperator<T>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	NegateField(const VolumeSPtr<T>& a) : SingleFieldOperator<T>(a) {}
+	NegateField(const VolumeSPtr<T>& a) : VariadicFieldOperator<T>(a) {}
 
-	const volumeDataType eval (const Vector& p) const override {
+	const volumeDataType eval(const Vector& p) const override {
 		return -this->_a->eval(p);
 	}
 
@@ -153,14 +184,14 @@ public:
     }
 };
 
-class ExpField : public SingleFieldOperator<float>{
+class ExpField : public VariadicFieldOperator<float>{
 public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	ExpField(const VolumeSPtr<float>& a) : SingleFieldOperator<float>(a) {}
+	ExpField(const VolumeSPtr<float>& a) : VariadicFieldOperator<float>(a) {}
 
-	const volumeDataType eval (const Vector& p) const override {
+	const volumeDataType eval(const Vector& p) const override {
 		return std::exp(this->_a->eval(p));
 	}
 
@@ -169,14 +200,14 @@ public:
     }
 };
 
-class LogField : public SingleFieldOperator<float>{
+class LogField : public VariadicFieldOperator<float>{
 public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	LogField(const VolumeSPtr<float>& a) : SingleFieldOperator<float>(a) {}
+	LogField(const VolumeSPtr<float>& a) : VariadicFieldOperator<float>(a) {}
 
-	const volumeDataType eval (const Vector& p) const override {
+	const volumeDataType eval(const Vector& p) const override {
 		return std::log(this->_a->eval(p));
 	}
 
@@ -190,14 +221,14 @@ public:
     }
 };
 
-class SinField : public SingleFieldOperator<float>{
+class SinField : public VariadicFieldOperator<float>{
 public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	SinField(const VolumeSPtr<float>& a) : SingleFieldOperator<float>(a) {}
+	SinField(const VolumeSPtr<float>& a) : VariadicFieldOperator<float>(a) {}
 
-	const volumeDataType eval (const Vector& p) const override {
+	const volumeDataType eval(const Vector& p) const override {
 		return std::sin(this->_a->eval(p));
 	}
 
@@ -206,14 +237,14 @@ public:
     }
 };
 
-class CosField : public SingleFieldOperator<float>{
+class CosField : public VariadicFieldOperator<float>{
 public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	CosField(const VolumeSPtr<float>& a) : SingleFieldOperator<float>(a) {}
+	CosField(const VolumeSPtr<float>& a) : VariadicFieldOperator<float>(a) {}
 
-	const volumeDataType eval (const Vector& p) const override {
+	const volumeDataType eval(const Vector& p) const override {
 		return std::cos(this->_a->eval(p));
 	}
 
@@ -245,57 +276,66 @@ protected:
 
 };
 
-class PowField : public FieldValOperator<float, float>{
+class PowField : public VariadicFieldOperator<float, float>{
 public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	PowField(const VolumeSPtr<float>& a, const float to_power) : FieldValOperator<float, float>(a, to_power) {}
+	PowField(const VolumeSPtr<float>& a, const float to_power) : VariadicFieldOperator<float, float>(a, to_power) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return std::pow(this->_a->eval(p), this->_b);
+	const volumeDataType eval(const Vector& p) const override {
+		return std::pow(this->_a->eval(p), std::get<0>(this->_values));
 	}
 
 	const volumeGradType grad(const Vector& p) const override { 
-        return this->_b * std::pow(this->_a->eval(p), this->_b - 1.0) * this->_a->grad(p);
+        return std::get<0>(this->_values) * 
+			   std::pow(this->_a->eval(p), std::get<0>(this->_values) - 1.0) * this->_a->grad(p);
     }
 };
 
 template<typename T, typename U>
-class ScaleField : public FieldValOperator<T, U>{
+class ScaleField : public VariadicFieldOperator<T, VolumeSPtr<U>>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	ScaleField(const VolumeSPtr<T>& a, const U& scale) : FieldValOperator<T, U>(a, scale) {}
+	ScaleField(const VolumeSPtr<T>& a, const VolumeSPtr<U>& scale) :
+			 VariadicFieldOperator<T, VolumeSPtr<U>>(a, scale) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return this->_a->eval(p / this->_b);
+	const volumeDataType eval(const Vector& p) const override {
+		auto b_eval = std::get<0>(this->_values)->eval(p);
+		if (b_eval == U{}){
+			return {}
+		} else{
+			return this->_a->eval(p / b_eval);
+		}
 	}
 
 	const volumeGradType grad(const Vector& p) const override { 
-        if (this->_b == U{}){
+		auto b_eval = std::get<0>(this->_values)->eval(p);
+		if (b_eval == U{}){
 			return {};
 		} else{
-			return this->_a->grad(p / this->_b) / this->_b;
+			return this->_a->grad(p / b_eval) / b_eval;
 		}
     }
 };
 
 template<typename T>
-class TranslateField : public FieldValOperator<T, Vector>{
+class TranslateField : public VariadicFieldOperator<T, VolumeSPtr<Vector>>{
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	TranslateField(const VolumeSPtr<T>& a, const Vector& delta_x) : FieldValOperator<T, Vector>(a, delta_x) {}
+	TranslateField(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta_x) : 
+						VariadicFieldOperator<T, VolumeSPtr<Vector>>(a, delta_x) {}
 
-	const volumeDataType eval (const Vector& p) const override {
-		return this->_a->eval(p - this->_b);
+	const volumeDataType eval(const Vector& p) const override {
+		return this->_a->eval(p - std::get<0>(this->_values)->eval(p));
 	}
 
 	const volumeGradType grad(const Vector& p) const override { 
-        return this->_a->grad(p - this->_b);
+        return this->_a->grad(p - std::get<0>(this->_values)->eval(p));
     }
 };
 

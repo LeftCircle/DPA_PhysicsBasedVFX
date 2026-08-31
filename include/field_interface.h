@@ -47,12 +47,12 @@ VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const float to_power){
 }
 
 template<typename T, typename U>
-VolumeSPtr<T> scale(const VolumeSPtr<T>& a, const U& b){
-    return std::make_shared<ScaleField<T, U>>(a, b);
+VolumeSPtr<T> scale(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b){
+    return std::make_shared<ScaleField<T, VolumeSPtr<U>>>(a, b);
 }
 
 template<typename T>
-VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const Vector& delta){
+VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta){
     return std::make_shared<TranslateField<T>>(a, delta);
 }
 
