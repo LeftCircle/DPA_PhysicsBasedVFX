@@ -2,6 +2,7 @@
 
 #include "Vector.h"
 #include "volume.h"
+#include "cmath"
 
 namespace lux{
 
@@ -51,7 +52,7 @@ public:
     using volumeGradType = typename Volume<float>::volumeGradType;
 
     TorusField(const Vector& center, float r_major, float r_minor, const Vector& n_hat) : 
-            _center(center), _r_major_sq(r_major * r_major), _r_minor_sq(r_minor * r_minor), _n_hat(n_hat) {};
+            _center(center), _r_major_sq(r_major * r_major), _r_minor_sq(r_minor * r_minor), _n_hat(n_hat.unitvector()) {};
     ~TorusField() = default;
     
     const volumeDataType eval( const Vector& p ) const override;
@@ -64,6 +65,122 @@ private:
     float _r_major_sq;
     float _r_minor_sq;
 };
+
+
+class ConeField : public Volume<float>{
+public:
+    using volumeDataType = typename Volume<float>::volumeDataType;
+    using volumeGradType = typename Volume<float>::volumeGradType;
+
+    ConeField(const Vector& x_0, const Vector& n_hat, float height, float theta) : 
+            _x_0(x_0), _n_hat(n_hat), _height(height), _theta(theta) {};
+    ~ConeField() = default;
+    
+    const volumeDataType eval( const Vector& p ) const override;
+    //const volumeGradType grad( const Vector& p ) const override { return {}; }
+    virtual std::string typelabel() { return "Cone"; }
+
+private:
+    Vector _x_0;
+    Vector _n_hat;
+    float _height;
+    float _theta;
+};
+
+class BoxField : public Volume<float>{
+public:
+    using volumeDataType = typename Volume<float>::volumeDataType;
+    using volumeGradType = typename Volume<float>::volumeGradType;
+
+    BoxField(const Vector& center, float radius, float rounding_exponent) : 
+            _center(center), _radius(radius), _rounding_exponent(rounding_exponent) {};
+    ~BoxField() = default;
+    
+    const volumeDataType eval( const Vector& p ) const override;
+    //const volumeGradType grad( const Vector& p ) const override { return {}; }
+    virtual std::string typelabel() { return "Box"; }
+
+private:
+    Vector _center;
+    float _radius;
+    float _rounding_exponent;
+};
+
+class IcosahedronField : public Volume<float>{
+public:
+    using volumeDataType = typename Volume<float>::volumeDataType;
+    using volumeGradType = typename Volume<float>::volumeGradType;
+
+    IcosahedronField(const Vector& center) : 
+            _center(center) {};
+    ~IcosahedronField() = default;
+    
+    const volumeDataType eval( const Vector& p ) const override;
+    //const volumeGradType grad( const Vector& p ) const override { return {}; }
+    virtual std::string typelabel() { return "Icosahedron"; }
+
+private:
+    Vector _center;
+    const float _T = 1.61803399;
+    const float _pi_times_1p8 = 3.14159265358979 * 1.8; 
+};
+
+class SteinerPatchField : public Volume<float>{
+public:
+    using volumeDataType = typename Volume<float>::volumeDataType;
+    using volumeGradType = typename Volume<float>::volumeGradType;
+
+    SteinerPatchField(const Vector& center) : 
+            _center(center) {};
+    ~SteinerPatchField() = default;
+    
+    const volumeDataType eval( const Vector& p ) const override;
+    //const volumeGradType grad( const Vector& p ) const override { return {}; }
+    virtual std::string typelabel() { return "SteinerPatch"; }
+
+private:
+    Vector _center;
+};
+
+class EllipseField : public Volume<float>{
+public:
+    using volumeDataType = typename Volume<float>::volumeDataType;
+    using volumeGradType = typename Volume<float>::volumeGradType;
+
+    EllipseField(const Vector& center, const Vector& normal, float r_major, float r_minor) : 
+            _center(center), _normal(normal), _r_major_sq(r_major * r_major), _r_minor_sq(r_minor * r_minor)  {};
+    ~EllipseField() = default;
+    
+    const volumeDataType eval( const Vector& p ) const override;
+    //const volumeGradType grad( const Vector& p ) const override { return {}; }
+    virtual std::string typelabel() { return "Ellipse"; }
+
+private:
+    Vector _center;
+    Vector _normal;
+    float _r_major_sq;
+    float _r_minor_sq;
+};
+
+// class CylinderField : public Volume<float>{
+// public:
+//     using volumeDataType = typename Volume<float>::volumeDataType;
+//     using volumeGradType = typename Volume<float>::volumeGradType;
+
+//     CylinderField(const Vector& center, const Vector& normal, float radius, float height) : 
+//             _center(center), _normal(normal), _radius(radius), _height(height) {};
+//     ~CylinderField() = default;
+    
+//     const volumeDataType eval( const Vector& p ) const override;
+//     //const volumeGradType grad( const Vector& p ) const override { return {}; }
+//     virtual std::string typelabel() { return "SteinerPatch"; }
+
+// private:
+//     Vector _center;
+//     Vector _normal;
+//     float _radius;
+//     float _height;
+// };
 
 
 } // end namespace lux

@@ -6,6 +6,7 @@
 #include <cstddef>
 
 #include "volume.h"
+#include "LinearAlgebra.h"
 
 namespace lux{
 
@@ -281,6 +282,25 @@ public:
 
 	const volumeGradType grad(const Vector& p) const override { 
         return this->_a->grad(p - std::get<0>(this->_values)->eval(p));
+    }
+};
+
+template<typename T>
+class RotateField : public FieldOperator<T, Vector, float>{
+public:
+	using typename Volume<T>::volumeDataType;
+	using typename Volume<T>::volumeGradType;
+
+	RotateField(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& axis, const VolumeSPtr<float> angle) : 
+						FieldOperator<T, Vector, float>(a, axis, angle) {}
+
+	const volumeDataType eval(const Vector& p) const override {
+		return this->_a->eval(rotation(p, std::get<0>(this->_values)->eval(p), std::get<1>(this->_values)->eval(p)));
+	}
+
+	const volumeGradType grad(const Vector& p) const override { 
+        auto grad = this->_a->grad(rotation(p, std::get<0>(this->_values)->eval(p), std::get<1>(this->_values)->eval(p)));
+		return rotation(grad, std::get<0>(this->_values)->eval(p), std::get<1>(this->_values)->eval(p));
     }
 };
 
