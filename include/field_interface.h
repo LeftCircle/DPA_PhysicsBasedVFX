@@ -62,10 +62,19 @@ VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta)
 template<typename T>
 VolumeSPtr<T> make_constant(const T& t){
     return std::make_shared<ConstantField<T>>(t);
-} 
+}
 
 VolumeSPtr<float> make_plane(const Vector& point, const Vector& normal) {
     return std::make_shared<PlaneField>(point, normal);
+}
+
+
+VolumeSPtr<float> isf_sphere(const Vector& center, const float radius){
+    return std::make_shared<SphereField>(center, radius);
+}
+
+VolumeSPtr<float> isf_torus(const Vector& center, float r_major, float r_minor, const Vector& n_hat){
+    return std::make_shared<TorusField>(center, r_major, r_minor, n_hat);
 }
 
 } // end namespace lux

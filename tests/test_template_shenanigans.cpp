@@ -111,7 +111,28 @@ TEST_CASE("Test implicit plane"){
 
 }
 
-TEST_CASE("Test tempalted gradients"){
+TEST_CASE("Test Implicit Functions"){
+    // Make a sphere and confirm that a point inside is negative and
+    // outside is positive inside
+    Vector inside_eval, outside_eval;
+    float expected_val;
+    Vector center(3, 4, 5);
+    float radius = 5;
+    inside_eval = Vector(2, 3, 4);
+    outside_eval = center + radius * 2 * Vector(1, 2, 3);
+    vspf sphere = isf_sphere(center, radius);
+    REQUIRE(sphere->eval(inside_eval) < 0);
+    REQUIRE(sphere->eval(outside_eval) > 0);
+    
 
+    float r_major = 3.0;
+    float r_minor = 2.0;
+    Vector nhat(0, 1, 0);
+    inside_eval = center + (r_major + r_minor) / 2.0 * Vector(1, 0, 0);
+    outside_eval = center;
+    vspf torus = isf_torus(center, r_major, r_major, nhat);
+    REQUIRE(torus->eval(inside_eval) < 0);
+    REQUIRE(torus->eval(outside_eval) > 0);
+    
 
 }

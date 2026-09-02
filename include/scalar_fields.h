@@ -12,7 +12,7 @@ public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	PlaneField(const Vector& point, const Vector& normal) : _point(point), _normal(normal) {}
+	PlaneField(const Vector& point, const Vector& normal) : _point(point), _normal(normal.unitvector()) {}
 	PlaneField(Vector&& point, Vector&& normal) :
 		_point(std::move(point)), _normal(std::move(normal)) {}
 
