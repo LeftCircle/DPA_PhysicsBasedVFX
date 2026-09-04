@@ -31,6 +31,7 @@ public:
 
 
 class IntersectionField : public FieldOperator<float, float>{
+public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
@@ -52,6 +53,7 @@ class IntersectionField : public FieldOperator<float, float>{
 
 
 class CutoutField : public FieldOperator<float, float>{
+public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
@@ -72,6 +74,7 @@ class CutoutField : public FieldOperator<float, float>{
 };
 
 class MaskField : public FieldOperator<float>{
+public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
@@ -85,6 +88,7 @@ class MaskField : public FieldOperator<float>{
 
 
 class ClampField : public FieldOperator<float, float, float>{
+public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 

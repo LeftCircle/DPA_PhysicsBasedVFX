@@ -29,6 +29,26 @@ target_include_directories(starter
         "${CMAKE_CURRENT_SOURCE_DIR}/third_party/starter/base"
 )
 
+
+# ------------------------------------------------------------
+# Image Processing
+# ------------------------------------------------------------
+
+set(IMAGE_PROCESSING_DEPS_ROOT
+    "~/local"
+    CACHE PATH
+    "Prefix containing include/ and lib/ for OpenImageIO/OpenEXR"
+)
+
+set(IMAGE_PROCESSING_BUILD_VIEWER OFF CACHE BOOL "" FORCE)
+set(IMAGE_PROCESSING_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(IMAGE_PROCESSING_BUILD_PYTHON OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/DPA_ImageProcessing"
+    "${CMAKE_CURRENT_BINARY_DIR}/DPA_ImageProcessing"
+)
+
 # ------------------------------------------------------------
 # All my things!
 # ------------------------------------------------------------
@@ -56,6 +76,7 @@ target_include_directories(pbvfx
 target_link_libraries(pbvfx
     PUBLIC
         starter
+        image_processing
 )
 
 # ------------------------------------------------------------

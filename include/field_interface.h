@@ -98,8 +98,8 @@ VolumeSPtr<float> isf_torus(const Vector& center, float r_major, float r_minor, 
     return std::make_shared<TorusField>(center, r_major, r_minor, n_hat);
 }
 
-VolumeSPtr<float> isf_cone(const Vector& nhat, float height, float theta){
-    return std::make_shared<ConeField>(nhat, height, theta);
+VolumeSPtr<float> isf_cone(const Vector& x0, const Vector& nhat, float height, float theta){
+    return std::make_shared<ConeField>(x0, nhat, height, theta);
 }
 
 VolumeSPtr<float> isf_box(const Vector& center, float radius, float rounding_exponent){
