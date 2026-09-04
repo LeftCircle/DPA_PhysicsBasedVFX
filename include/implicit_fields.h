@@ -173,7 +173,7 @@ private:
     
 //     const volumeDataType eval( const Vector& p ) const override;
 //     //const volumeGradType grad( const Vector& p ) const override { return {}; }
-//     virtual std::string typelabel() { return "SteinerPatch"; }
+//     virtual std::string typelabel() { return "Cylinder"; }
 
 // private:
 //     Vector _center;

@@ -133,6 +133,4 @@ TEST_CASE("Test Implicit Functions"){
     // vspf torus = isf_torus(center, r_major, r_major, nhat);
     // REQUIRE(torus->eval(inside_eval) < 0);
     // REQUIRE(torus->eval(outside_eval) > 0);
-    
-
 }

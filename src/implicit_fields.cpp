@@ -60,3 +60,7 @@ const EllipseField::volumeDataType EllipseField::eval(const Vector& p ) const{
     auto xperp = v - Z * _normal;
     return Z * Z / _r_major_sq + xperp.magnitude_squared() / _r_minor_sq - 1.0;
 }
+
+// const CylinderField::volumeDataType CylinderField::eval(const Vector& p) const {
+
+// }

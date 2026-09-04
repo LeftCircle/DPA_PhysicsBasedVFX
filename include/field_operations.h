@@ -42,7 +42,7 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	AddFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	AddFields(VolumeSPtr<T> a, VolumeSPtr<U> b) : FieldOperator<T, U>(std::move(a), std::move(b)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return this->_a->eval(p) + std::get<0>(this->_values)->eval(p);
@@ -59,7 +59,7 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	SubtractFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	SubtractFields(const VolumeSPtr<T> a, const VolumeSPtr<U> b) : FieldOperator<T, U>(std::move(a), std::move(b)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return this->_a->eval(p) - std::get<0>(this->_values)->eval(p);
@@ -82,7 +82,7 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	MultiplyFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	MultiplyFields(const VolumeSPtr<T> a, const VolumeSPtr<U> b) : FieldOperator<T, U>(std::move(a), std::move(b)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return this->_a->eval(p) * std::get<0>(this->_values)->eval(p);
@@ -104,7 +104,7 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	DivideFields(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) : FieldOperator<T, U>(a, b) {}
+	DivideFields(const VolumeSPtr<T> a, const VolumeSPtr<U> b) : FieldOperator<T, U>(std::move(a), std::move(b)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		auto b_eval = std::get<0>(this->_values)->eval(p);
@@ -136,7 +136,7 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	NegateField(const VolumeSPtr<T>& a) : FieldOperator<T>(a) {}
+	NegateField(const VolumeSPtr<T> a) : FieldOperator<T>(std::move(a)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return -this->_a->eval(p);
@@ -152,7 +152,7 @@ public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	ExpField(const VolumeSPtr<float>& a) : FieldOperator<float>(a) {}
+	ExpField(const VolumeSPtr<float> a) : FieldOperator<float>(std::move(a)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return std::exp(this->_a->eval(p));
@@ -168,7 +168,7 @@ public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	LogField(const VolumeSPtr<float>& a) : FieldOperator<float>(a) {}
+	LogField(const VolumeSPtr<float> a) : FieldOperator<float>(std::move(a)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return std::log(this->_a->eval(p));
@@ -189,7 +189,7 @@ public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	SinField(const VolumeSPtr<float>& a) : FieldOperator<float>(a) {}
+	SinField(const VolumeSPtr<float> a) : FieldOperator<float>(std::move(a)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return std::sin(this->_a->eval(p));
@@ -205,7 +205,7 @@ public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	CosField(const VolumeSPtr<float>& a) : FieldOperator<float>(a) {}
+	CosField(const VolumeSPtr<float> a) : FieldOperator<float>(std::move(a)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return std::cos(this->_a->eval(p));
@@ -226,8 +226,8 @@ public:
 	using typename Volume<float>::volumeDataType;
 	using typename Volume<float>::volumeGradType;
 
-	PowField(const VolumeSPtr<float>& a, const VolumeSPtr<float>& to_power) : 
-						FieldOperator<float, float>(a, to_power) {}
+	PowField(const VolumeSPtr<float> a, const VolumeSPtr<float> to_power) : 
+						FieldOperator<float, float>(std::move(a), std::move(to_power)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return std::pow(this->_a->eval(p), std::get<0>(this->_values)->eval(p));
@@ -245,8 +245,8 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	ScaleField(const VolumeSPtr<T>& a, const VolumeSPtr<U>& scale) :
-			 FieldOperator<T, U>(a, scale) {}
+	ScaleField(const VolumeSPtr<T> a, const VolumeSPtr<U> scale) :
+			 FieldOperator<T, U>(std::move(a), std::move(scale)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		auto b_eval = std::get<0>(this->_values)->eval(p);
@@ -273,8 +273,8 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	TranslateField(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta_x) : 
-						FieldOperator<T, Vector>(a, delta_x) {}
+	TranslateField(const VolumeSPtr<T> a, const VolumeSPtr<Vector> delta_x) : 
+						FieldOperator<T, Vector>(std::move(a), std::move(delta_x)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return this->_a->eval(p - std::get<0>(this->_values)->eval(p));
@@ -291,8 +291,8 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	RotateField(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& axis, const VolumeSPtr<float> angle) : 
-						FieldOperator<T, Vector, float>(a, axis, angle) {}
+	RotateField(const VolumeSPtr<T> a, const VolumeSPtr<Vector> axis, const VolumeSPtr<float> angle) : 
+						FieldOperator<T, Vector, float>(std::move(a), std::move(axis), std::move(angle)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return this->_a->eval(rotation(p, std::get<0>(this->_values)->eval(p), std::get<1>(this->_values)->eval(p)));
@@ -311,56 +311,56 @@ public:
 
 template <typename T, typename U>
 std::shared_ptr<Volume<T>> operator+(
-    const VolumeSPtr<T>& a,
-    const VolumeSPtr<U>& b
+    const VolumeSPtr<T> a,
+    const VolumeSPtr<U> b
 ){
-    return std::make_shared<AddFields<T, U>>(a, b);
+    return std::make_shared<AddFields<T, U>>(std::move(a), std::move(b));
 }
 
 template <typename T, typename U>
-std::shared_ptr<Volume<T>> operator-(const VolumeSPtr<T>& a,
-                                     const VolumeSPtr<U>& b)
+std::shared_ptr<Volume<T>> operator-(const VolumeSPtr<T> a,
+                                     const VolumeSPtr<U> b)
 {
-    return std::make_shared<SubtractFields<T, U>>(a, b);
+    return std::make_shared<SubtractFields<T, U>>(std::move(a), std::move(b));
 }
 
 
 template <typename T, typename U>
-std::shared_ptr<Volume<T>> operator*(const VolumeSPtr<T>& a,
-                                     const VolumeSPtr<U>& b)
+std::shared_ptr<Volume<T>> operator*(const VolumeSPtr<T> a,
+                                     const VolumeSPtr<U> b)
 {
-    return std::make_shared<MultiplyFields<T, U>>(a, b);
+    return std::make_shared<MultiplyFields<T, U>>(std::move(a), std::move(b));
 }
 
-inline std::shared_ptr<Volume<Vector>> operator*(const VolumeSPtr<float>& a,
-                                     const VolumeSPtr<Vector>& b)
+inline std::shared_ptr<Volume<Vector>> operator*(const VolumeSPtr<float> a,
+                                     const VolumeSPtr<Vector> b)
 {
-    return std::make_shared<MultiplyFields<Vector, float>>(b, a);
+    return std::make_shared<MultiplyFields<Vector, float>>(std::move(b), std::move(a));
 }
 
-inline std::shared_ptr<Volume<Vector>> operator*(const VolumeSPtr<Vector>& a,
-                                     const VolumeSPtr<float>& b)
+inline std::shared_ptr<Volume<Vector>> operator*(const VolumeSPtr<Vector> a,
+                                     const VolumeSPtr<float> b)
 {
-    return std::make_shared<MultiplyFields<Vector, float>>(a, b);
+    return std::make_shared<MultiplyFields<Vector, float>>(std::move(a), std::move(b));
 }
 
 template <typename T, typename U>
-std::shared_ptr<Volume<T>> operator/(const VolumeSPtr<T>& a,
-                                     const VolumeSPtr<U>& b)
+std::shared_ptr<Volume<T>> operator/(const VolumeSPtr<T> a,
+                                     const VolumeSPtr<U> b)
 {
-    return std::make_shared<DivideFields<T, U>>(a, b);
+    return std::make_shared<DivideFields<T, U>>(std::move(a), std::move(b));
 }
 
-inline std::shared_ptr<Volume<Vector>> operator/(const VolumeSPtr<float>& a,
-                                     const VolumeSPtr<Vector>& b)
+inline std::shared_ptr<Volume<Vector>> operator/(const VolumeSPtr<float> a,
+                                     const VolumeSPtr<Vector> b)
 {
-    return std::make_shared<DivideFields<Vector, float>>(b, a);
+    return std::make_shared<DivideFields<Vector, float>>(std::move(b), std::move(a));
 }
 
-inline std::shared_ptr<Volume<Vector>> operator/(const VolumeSPtr<Vector>& a,
-                                     const VolumeSPtr<float>& b)
+inline std::shared_ptr<Volume<Vector>> operator/(const VolumeSPtr<Vector> a,
+                                     const VolumeSPtr<float> b)
 {
-    return std::make_shared<DivideFields<Vector, float>>(a, b);
+    return std::make_shared<DivideFields<Vector, float>>(std::move(a), std::move(b));
 }
 
 
@@ -369,9 +369,9 @@ inline std::shared_ptr<Volume<Vector>> operator/(const VolumeSPtr<Vector>& a,
 // ---------------------------------------------------------------------------------
 
 template <typename T>
-std::shared_ptr<Volume<T>> operator-(const VolumeSPtr<T>& a)
+std::shared_ptr<Volume<T>> operator-(const VolumeSPtr<T> a)
 {
-    return std::make_shared<NegateField<T>>(a);
+    return std::make_shared<NegateField<T>>(std::move(a));
 }
 
 
