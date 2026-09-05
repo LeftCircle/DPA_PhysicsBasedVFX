@@ -19,6 +19,7 @@ class Camera
     const lux::Vector& eye() const  { return position; }
     const lux::Vector& view() const { return axis_view; }
     const lux::Vector& up() const   { return axis_up; }
+    const lux::Vector& right() const { return axis_right; }
 
     // view direction of a pixel at the fractional position x,y.
     // Nominally 0 <= x <= 1 and 0 <= y <= 1 for the primary fov,
@@ -29,6 +30,8 @@ class Camera
 
     void setFov( const double fov );
     const double& fov() const { return FOV; }
+    const double get_htanfov() const { return htanfov; }
+    const double get_vtanfov() const { return vtanfov; }
 
     void setAspectRatio( const double ar );
     const double& aspectRatio() const { return aspect_ratio; }
