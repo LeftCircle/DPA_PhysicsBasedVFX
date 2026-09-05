@@ -1,4 +1,5 @@
 #include "ray_marcher.h"
+#include <iostream>
 
 using namespace lux;
 
@@ -21,7 +22,7 @@ Color RayMarcher::ray_march_single_pixel(
     Vector X = eye + direction * s;
     while( s < _sfar && T > _Tmin ) {
         float den = density->eval(X);
-        if( den > 0.0 ){
+        if( den < 0.0 ){
             float dT = std::exp( -_ds * _kappa * den );
             L += color->eval(X) * (1-dT) * T * _one_over_kappa;
             T *= dT;
@@ -31,6 +32,7 @@ Color RayMarcher::ray_march_single_pixel(
     }
     L[3] = 1-T; // set the alpha channel to the opacity
     return L;
+    //return Color(0, 0, 1, 1);
 }
 
 
@@ -49,6 +51,7 @@ void RayMarcher::ray_march_image(
     const Vector& vhat = cam.up();
     const Vector& ncam = cam.view();
     const Vector& eye = cam.eye();
+    printf("img width = %d, img height = %d\n", img.get_width(), img.get_height());
     #pragma omp parallel for
     for (int j = 0; j < img.get_height(); j++){
         for (int i = 0; i < img.get_width(); i++){
@@ -57,6 +60,8 @@ void RayMarcher::ray_march_image(
 
             Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
             Color pixel = ray_march_single_pixel(ray_dir, eye, density, color);
+            ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
+            img.set_pixel_values(i, j, p);
         }
     }
 }

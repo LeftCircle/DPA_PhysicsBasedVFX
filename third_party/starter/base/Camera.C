@@ -1,6 +1,7 @@
 
 #include "Vector.h"
 #include "Camera.h"
+#include <iostream>
 using namespace lux;
 
 Camera::Camera()
@@ -66,6 +67,18 @@ void Camera::setAspectRatio( const double ar )
 {
    aspect_ratio = ar;
    vtanfov = htanfov/aspect_ratio;
+   // vtanfov = tan( FOV / ar * 0.5 * M_PI / 180);
+   // printf("vtanfov post aspect ratio set = %f\n", vtanfov);
+   
+   // auto vFOV = FOV / aspect_ratio;
+   // auto vtanfov_new = tan( vFOV * 0.5 * M_PI / 180);
+   // std::cout << "pre " << vtanfov_new << std::endl;
+   // auto tanfov_ov_vtanfov = htanfov / vtanfov;
+   // auto tanfov_ov_vtanfov_new = htanfov / vtanfov_new;
+   // auto expected = aspect_ratio;
+
+   // printf("vFOV = %f, FOV / VOF = %f \n", vFOV, FOV / vFOV);
+   // printf("htanfov / vtanfov = %f: htanfov / vtanfov_new = %f: ar = %f\n", tanfov_ov_vtanfov, tanfov_ov_vtanfov_new, expected);
 }
 
 char * Camera::__str__() {

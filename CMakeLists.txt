@@ -35,7 +35,7 @@ target_include_directories(starter
 # ------------------------------------------------------------
 
 set(IMAGE_PROCESSING_DEPS_ROOT
-    "~/local"
+    "/home/left/local"
     CACHE PATH
     "Prefix containing include/ and lib/ for OpenImageIO/OpenEXR"
 )
