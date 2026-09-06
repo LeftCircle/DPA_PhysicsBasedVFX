@@ -23,16 +23,20 @@ Color RayMarcher::ray_march_single_pixel(
     while( s < _sfar && T > _Tmin ) {
         float den = density->eval(X);
         if( den < 0.0 ){
-            float dT = std::exp( -_ds * _kappa * den );
-            L += color->eval(X) * (1-dT) * T * _one_over_kappa;
-            T *= dT;
+            if (_kappa == 0.0){
+                L += color->eval(X);
+                T = 0;
+            } else {
+                float dT = std::exp( _ds * _kappa * den ); // dens is negative here, so remove - mult;
+                L += color->eval(X) * (1-dT) * T * _one_over_kappa;
+                T *= dT;
+            }
         }
         X += direction * _ds;
         s += _ds;
     }
     L[3] = 1-T; // set the alpha channel to the opacity
     return L;
-    //return Color(0, 0, 1, 1);
 }
 
 
@@ -62,6 +66,13 @@ void RayMarcher::ray_march_image(
             Color pixel = ray_march_single_pixel(ray_dir, eye, density, color);
             ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
             img.set_pixel_values(i, j, p);
+            if (i == 1920 / 2 / 2 && j == 1080 / 2 / 2){
+                pixel.__str__();
+                printf("found\n");
+                printf("%f %f %f %f\n", pixel.red(), pixel.blue(), pixel.green(), pixel.alpha());
+            }
         }
     }
+
+    
 }
