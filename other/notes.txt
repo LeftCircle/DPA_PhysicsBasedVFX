@@ -1,6 +1,10 @@
 
 cmake -S . -B build
 
+
+to build physics_vfx and see outputs
+cmake --build build --target physics_vfx --verbose -j
+
 After adding or changing a test:
 
 cmake --build build --target pbvfx_tests --parallel

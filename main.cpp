@@ -21,13 +21,13 @@ int main(int argc, char** argv){
 
 	Camera cam;
 
-	VolumeSPtr<float> a = isf_sphere(Vector(0, 0, 0), 0.1);
+	VolumeSPtr<float> a = isf_sphere(Vector(0, 0, 0), 0.4);
 	VolumeSPtr<Color> col = make_constant(Color(1, 0, 0, 0));
 
 	//VolumeSPtr<Color> final_col = col * mask(-a) + col * mask(a);
 	
 	rm.ray_march_image(cam, test_image, a, col);
-	test_image.oiio_write_to("images/test_image.png");
+	test_image.oiio_write_to("images/test_image.exr");
 
 	return 0;
 }
