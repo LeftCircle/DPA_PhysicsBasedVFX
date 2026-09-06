@@ -10,7 +10,7 @@ using namespace lux;
 
 int main(int argc, char** argv){
 
-	ImageData test_image(64, 64, 4);
+	ImageData test_image(1920, 1080, 4);
 	RayMarcher rm;
 	rm.set_ds(0.01);
 	rm.set_snear(0);
