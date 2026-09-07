@@ -19,3 +19,42 @@ If you add a brand-new test source file and CMake does not detect it, reconfigur
 cmake -S . -B build -DBUILD_TESTING=ON
 cmake --build build --target pbvfx_tests --parallel
 ctest --test-dir build --output-on-failure
+
+
+// ----------------------------------------------------------
+// Building both imgviewer and physics_vfx
+// ----------------------------------------------------------
+
+
+
+First, enable the viewer in the top-level `CMakeLists.txt:46-53`:
+
+```cmake
+set(IMAGE_PROCESSING_BUILD_VIEWER ON CACHE BOOL "" FORCE)
+```
+
+Then configure and build both executables:
+
+```bash
+cmake -S . -B build
+cmake --build build --target physics_vfx dpa_imgviewer --parallel
+```
+
+Run the renderer from the project root, then launch the viewer:
+
+```bash
+./build/physics_vfx
+./build/DPA_ImageProcessing/dpa_imgviewer -image images/test_image.exr
+```
+ Build `dpa_imgviewer` once:
+
+```bash
+cmake -S . -B build
+cmake --build build --target dpa_imgviewer --parallel
+```
+
+Then your repeated workflow only needs to build/run the renderer and launch the existing viewer:
+
+```bash
+cmake --build build --target physics_vfx --parallel
+
