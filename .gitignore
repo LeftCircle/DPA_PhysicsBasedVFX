@@ -3,7 +3,11 @@
 /cmake-build-*/
 /images/
 
-/# Compiled object files
+# images
+*.exr
+
+
+# Compiled object files
 *.o
 *.obj
 

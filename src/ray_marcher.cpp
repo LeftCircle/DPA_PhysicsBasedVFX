@@ -49,28 +49,22 @@ void RayMarcher::ray_march_image(
     // First let's find the pixel size. Can we assume square pixels??
     const float htanfov = cam.get_htanfov();
     const float vtanfov = cam.get_vtanfov();
-    const float nx_pixelsf = (float)img.get_width();
-    const float ny_pixelsf = (float)img.get_height();
+    const float one_over_nx_pixelsf = 1.0 / (float)img.get_width();
+    const float one_over_ny_pixelsf = 1.0 / (float)img.get_height();
     const Vector& rhat = cam.right();
     const Vector& vhat = cam.up();
     const Vector& ncam = cam.view();
     const Vector& eye = cam.eye();
-    printf("img width = %d, img height = %d\n", img.get_width(), img.get_height());
     #pragma omp parallel for
     for (int j = 0; j < img.get_height(); j++){
         for (int i = 0; i < img.get_width(); i++){
-            float u = (2.0 * i / nx_pixelsf - 1.0) * htanfov;
-            float v = (2.0 * j / ny_pixelsf - 1.0) * vtanfov;
+            float u = (2.0 * i * one_over_nx_pixelsf - 1.0) * htanfov;
+            float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
 
             Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
             Color pixel = ray_march_single_pixel(ray_dir, eye, density, color);
             ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
             img.set_pixel_values(i, j, p);
-            if (i == 1920 / 2 / 2 && j == 1080 / 2 / 2){
-                pixel.__str__();
-                printf("found\n");
-                printf("%f %f %f %f\n", pixel.red(), pixel.blue(), pixel.green(), pixel.alpha());
-            }
         }
     }
 

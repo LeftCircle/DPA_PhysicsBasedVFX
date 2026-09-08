@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 
 #include "field_interface.h"
 #include "ray_marcher.h"
@@ -7,6 +8,8 @@
 
 
 using namespace lux;
+
+const float PI = 3.14159265358979;
 
 int main(int argc, char** argv){
 	
@@ -19,17 +22,57 @@ int main(int argc, char** argv){
 
 	ImageData test_image(1920 / 2, 1080 / 2, 4);
 	RayMarcher rm;
-	rm.set_ds(0.003);
+	rm.set_ds(0.03);
 	rm.set_snear(0);
 	rm.set_sfar(5);
 	rm.set_exticntion_coefficient(0.0001);
+	rm.set_exticntion_coefficient(0.0);
 	rm.set_Tmin(0.001);
 	
 
 	Camera cam;
 	cam.setEyeViewUp(Vector(0, 0, 3), Vector(0, 0, -1), Vector(0, 1, 0));
 
-	VolumeSPtr<float> a = isf_sphere(Vector(0, 0, 0), 0.5);
+	// VolumeSPtr<float> a = isf_sphere(Vector(0, 0, 0), 0.5);
+	// auto a = isf_box(Vector(0, 0, 0), 0.5, 2);
+	// auto a = isf_cone(Vector(0, -0.5, 0), Vector(0, 1, 0), 1, 60 * PI / 360.0);
+	// auto a = isf_ellipse(Vector(), Vector(0, 1, 0), 0.5, 0.25);
+	// auto a = isf_icosahedron(Vector());
+	// a = scale(a, make_constant(0.1));
+	// auto a = isf_steiner_patch(Vector());
+	// auto a = isf_torus(Vector(), 0.5, 0.25, Vector(0, 1, 0));
+	// auto a = isf_cylinder(Vector(), Vector(0, 1, 0), 0.25, 0.5);
+
+	// a = union_fields(a, make_plane(Vector(), Vector(0, 1, 0)));
+	// a = cutout(a, make_plane(Vector(), Vector(0, 1, 0)));
+	// auto s1 = isf_sphere(Vector(-0.25, 0, 0), 0.5);
+	// auto s2 = isf_sphere(Vector(0.25, 0, 0), 0.5); 
+	// auto a = intersection(s1, s2);
+
+	// Blend doesn't work yet!
+	// auto torus = isf_torus(Vector(), 0.5, 0.1, Vector(0, 0, 1));
+	// auto box = isf_box(Vector(0.45, 0, 0), 0.25, 3);
+	// auto a = blinn_blend(std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{box, torus}), 1.0, 0);
+	//auto a = union_fields(torus, box);
+	
+	// auto a = isf_cone(Vector(0, -0.5, 0), Vector(0, 1, 0), 1, 60 * PI / 360.0);
+	// a = rotate(a, make_constant<Vector>(Vector(1, 1, 1)), make_constant<float>(90 * PI / 360.0));
+
+	vspf a = isf_cone(Vector(0, -0.5, 0), Vector(0, 1, 0), 1, 60 * PI / 360.0);
+	auto lin_y = funcfield<float>([](const Vector& p){
+			return p.Y();
+		},
+		[](const Vector& p){
+			return Vector(0, 1, 0);
+		}
+	);
+	lin_y = scale(lin_y, make_constant(0.1));
+	auto sinfield = sin(lin_y); 
+	a = translate(a, make_constant(Vector(1, 0, 0)) * sinfield);
+
+	//vspf a = isf_cone(Vector(0, -0.5, 0), Vector(0, 1, 0), 1, 60 * PI / 360.0);
+	//a = scale(a, make_constant(0.25));
+
 	a = -mask(a);
 	VolumeSPtr<Color> col = make_constant(Color(1, 0, 0, 0));
 

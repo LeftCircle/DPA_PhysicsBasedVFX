@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 
 #include "volume.h"
 #include "field_operations.h"
@@ -17,34 +18,11 @@ namespace lux{
 using vspf = VolumeSPtr<float>;
 
 template<typename T, typename U>
-std::shared_ptr<Volume<T>> add(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) {
-    return std::make_shared<AddFields<T, U>>(a, b);
-}
-
+std::shared_ptr<Volume<T>> add(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b);
 
 template<typename T, typename U>
 std::shared_ptr<Volume<T>> subtract(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b) {
     return std::make_shared<SubtractFields<T, U>>(a, b);
-}
-
-VolumeSPtr<float> exp(const VolumeSPtr<float>& a){
-    return std::make_shared<ExpField>(a);
-}
-
-VolumeSPtr<float> log(const VolumeSPtr<float>& a){
-    return std::make_shared<LogField>(a);
-}
-
-VolumeSPtr<float> sin(const VolumeSPtr<float>& a){
-    return std::make_shared<SinField>(a);
-}
-
-VolumeSPtr<float> cos(const VolumeSPtr<float>& a){
-    return std::make_shared<CosField>(a);
-}
-
-VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const VolumeSPtr<float>& to_power){
-    return std::make_shared<PowField>(a, to_power);
 }
 
 template<typename T, typename U>
@@ -57,25 +35,47 @@ VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta)
     return std::make_shared<TranslateField<T>>(a, delta);
 }
 
-vspf union_fields(const vspf a, const vspf b){
-    return std::make_shared<UnionField>(std::move(a), std::move(b));
+template<typename T>
+VolumeSPtr<T> rotate(const VolumeSPtr<T> a, const VolumeSPtr<Vector> axis, const VolumeSPtr<float> angle){
+    return std::make_shared<RotateField<T>>(std::move(a), std::move(axis), std::move(angle));
 }
 
-vspf intersection(const vspf a, const vspf b){
-    return std::make_shared<IntersectionField>(std::move(a), std::move(b));
+// ---------------------------------------------------------------------------------
+// float operations
+// ---------------------------------------------------------------------------------
+template<typename T>
+VolumeSPtr<T> funcfield(
+    std::function<T(const Vector&)> eval_func,
+    std::function<typename Volume<T>::volumeGradType(const Vector&)> grad_func
+){
+    return std::make_shared<FunctionField<T>>(std::move(eval_func), std::move(grad_func));
 }
 
-vspf cutout(const vspf a, const vspf b){
-    return std::make_shared<CutoutField>(std::move(a), std::move(b));
-}
+VolumeSPtr<float> exp(const VolumeSPtr<float>& a);
 
-vspf clamp(const vspf a, const vspf min, const vspf max){
-    return std::make_shared<ClampField>(std::move(a), std::move(min), std::move(max));
-}
+VolumeSPtr<float> log(const VolumeSPtr<float>& a);
 
-vspf mask(const vspf a){
-    return std::make_shared<MaskField>(std::move(a));
-}
+VolumeSPtr<float> sin(const VolumeSPtr<float>& a);
+
+VolumeSPtr<float> cos(const VolumeSPtr<float>& a);
+
+VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const VolumeSPtr<float>& to_power);
+
+// ---------------------------------------------------------------------------------
+// constructive solid geometry
+// ---------------------------------------------------------------------------------
+
+vspf union_fields(const vspf a, const vspf b);
+
+vspf intersection(const vspf a, const vspf b);
+
+vspf cutout(const vspf a, const vspf b);
+
+vspf clamp(const vspf a, const vspf min, const vspf max);
+
+vspf mask(const vspf a);
+
+vspf blinn_blend(std::shared_ptr<const std::vector<vspf>> fields, float blend_factor, float shape_broadness);
 
 // ---------------------------------------------------------------------------------
 // fields!
@@ -85,39 +85,23 @@ VolumeSPtr<T> make_constant(const T& t){
     return std::make_shared<ConstantField<T>>(t);
 }
 
-VolumeSPtr<float> make_plane(const Vector& point, const Vector& normal) {
-    return std::make_shared<PlaneField>(point, normal);
-}
+VolumeSPtr<float> make_plane(const Vector& point, const Vector& normal) ;
 
+VolumeSPtr<float> isf_sphere(const Vector& center, const float radius);
 
-VolumeSPtr<float> isf_sphere(const Vector& center, const float radius){
-    return std::make_shared<SphereField>(center, radius);
-}
+VolumeSPtr<float> isf_torus(const Vector& center, float r_major, float r_minor, const Vector& n_hat);
 
-VolumeSPtr<float> isf_torus(const Vector& center, float r_major, float r_minor, const Vector& n_hat){
-    return std::make_shared<TorusField>(center, r_major, r_minor, n_hat);
-}
+VolumeSPtr<float> isf_cone(const Vector& x0, const Vector& nhat, float height, float theta);
 
-VolumeSPtr<float> isf_cone(const Vector& x0, const Vector& nhat, float height, float theta){
-    return std::make_shared<ConeField>(x0, nhat, height, theta);
-}
+VolumeSPtr<float> isf_box(const Vector& center, float radius, int rounding_exponent);
 
-VolumeSPtr<float> isf_box(const Vector& center, float radius, float rounding_exponent){
-    return std::make_shared<BoxField>(center, radius, rounding_exponent);
-}
+VolumeSPtr<float> isf_icosahedron(const Vector& center);
 
+VolumeSPtr<float> isf_steiner_patch(const Vector& center);
 
-VolumeSPtr<float> isf_icosahedron(const Vector& center){
-    return std::make_shared<IcosahedronField>(center);
-}
+VolumeSPtr<float> isf_ellipse(const Vector& center, const Vector& normal, float r_major, float r_minor);
 
-VolumeSPtr<float> isf_steiner_patch(const Vector& center){
-    return std::make_shared<SteinerPatchField>(center);
-}
-
-VolumeSPtr<float> isf_ellipse(const Vector& center, const Vector& normal, float r_major, float r_minor){
-    return std::make_shared<EllipseField>(center, normal, r_major, r_minor);
-}
+VolumeSPtr<float> isf_cylinder(const Vector& center, const Vector& normal, float r, float h);
 
 
 } // end namespace lux

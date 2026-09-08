@@ -4,11 +4,38 @@
 #include <type_traits>
 #include <tuple>
 #include <cstddef>
+#include <functional>
 
 #include "volume.h"
 #include "LinearAlgebra.h"
 
 namespace lux{
+
+template <typename T>
+class FunctionField : public Volume<T> {
+public:
+	using typename Volume<T>::volumeDataType;
+	using typename Volume<T>::volumeGradType;
+	using Func = std::function<volumeDataType(const Vector&)>;
+	using GradFunc = std::function<volumeGradType(const Vector&)>;
+
+	explicit FunctionField(Func function, GradFunc grad_func = {}) :
+	 	_function(std::move(function)), _grad_func(std::move(grad_func)) {}
+	
+	const volumeDataType eval(const Vector& p) const override { return _function(p); }
+	const volumeGradType grad(const Vector&p) const override {
+		 if (_grad_func){
+			return _grad_func(p);
+		} else {
+			return Volume<float>::grad(p);
+		}
+	}
+
+private:
+	Func _function;
+	GradFunc _grad_func;
+};
+
 
 // ---------------------------------------------------------------------------------
 // Templated field operators

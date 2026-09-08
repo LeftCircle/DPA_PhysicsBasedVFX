@@ -190,6 +190,7 @@ class Volume : public VolumeBase
 
 template<typename T>
 using VolumeSPtr = std::shared_ptr<Volume<T>>;
+using vspf = VolumeSPtr<float>;
 
 
 }

@@ -29,7 +29,8 @@ const ConeField::volumeDataType ConeField::eval(const Vector& p) const {
 
 const BoxField::volumeDataType BoxField::eval(const Vector& p) const {
     auto v = p - _center;
-    return std::powf(v.X(), _rounding_exponent) + std::powf(v.Y(), _rounding_exponent) + std::powf(v.Z(), _rounding_exponent) - _radius;
+    return std::powf(v.X(), _rounding_exponent) + std::powf(v.Y(), _rounding_exponent) + 
+            std::powf(v.Z(), _rounding_exponent) - _r_to_rounding_exp;
 }
 
 const IcosahedronField::volumeDataType IcosahedronField::eval(const Vector& p) const {
@@ -42,7 +43,7 @@ const IcosahedronField::volumeDataType IcosahedronField::eval(const Vector& p) c
         auto tz = v.Z() * _T;
         return 2.0 - std::cosf(v.X() + ty) - std::cosf(v.X() - ty) - 
                 std::cosf(v.Y() + tz) - std::cosf(v.Y() - tz) - 
-                std::cosf(v.Z() - tx) - std::cosf(v.Z() + tx);
+                std::cosf(v.Z() + tx) - std::cosf(v.Z() - tx);
     }
 }
 
@@ -61,6 +62,7 @@ const EllipseField::volumeDataType EllipseField::eval(const Vector& p ) const{
     return Z * Z / _r_major_sq + xperp.magnitude_squared() / _r_minor_sq - 1.0;
 }
 
-// const CylinderField::volumeDataType CylinderField::eval(const Vector& p) const {
-
-// }
+const CylinderField::volumeDataType CylinderField::eval(const Vector& p) const {
+    auto v = p - _center;
+    return (v - (v * _normal) * _normal).magnitude() - _radius;
+}
