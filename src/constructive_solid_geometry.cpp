@@ -61,5 +61,5 @@ const BlinnBlendField::volumeDataType BlinnBlendField::eval(const Vector& p) con
     for (const VolumeSPtr<float>& field : *_fields){
         eval += std::expf(field->eval(p) * _blend_factor);
     }
-    return eval - (float)_fields->size();
+    return eval - _shape_broadness;
 }

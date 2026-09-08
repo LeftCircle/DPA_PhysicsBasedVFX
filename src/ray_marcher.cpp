@@ -67,6 +67,5 @@ void RayMarcher::ray_march_image(
             img.set_pixel_values(i, j, p);
         }
     }
-
-    
+   
 }
