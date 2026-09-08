@@ -46,7 +46,7 @@ VolumeSPtr<T> rotate(const VolumeSPtr<T> a, const VolumeSPtr<Vector> axis, const
 template<typename T>
 VolumeSPtr<T> funcfield(
     std::function<T(const Vector&)> eval_func,
-    std::function<typename Volume<T>::volumeGradType(const Vector&)> grad_func
+    std::function<typename Volume<T>::volumeGradType(const Vector&)> grad_func = {}
 ){
     return std::make_shared<FunctionField<T>>(std::move(eval_func), std::move(grad_func));
 }
@@ -76,6 +76,10 @@ vspf clamp(const vspf a, const vspf min, const vspf max);
 vspf mask(const vspf a);
 
 vspf blinn_blend(std::shared_ptr<const std::vector<vspf>> fields, float blend_factor, float shape_broadness);
+
+vspf dilation(const vspf a, float d);
+
+vspf shell(const vspf a, float d);
 
 // ---------------------------------------------------------------------------------
 // fields!

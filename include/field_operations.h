@@ -69,7 +69,7 @@ public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
 
-	AddFields(VolumeSPtr<T> a, VolumeSPtr<U> b) : FieldOperator<T, U>(std::move(a), std::move(b)) {}
+	AddFields(const VolumeSPtr<T> a, const VolumeSPtr<U> b) : FieldOperator<T, U>(std::move(a), std::move(b)) {}
 
 	const volumeDataType eval(const Vector& p) const override {
 		return this->_a->eval(p) + std::get<0>(this->_values)->eval(p);

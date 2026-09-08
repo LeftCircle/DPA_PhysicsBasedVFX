@@ -48,7 +48,18 @@ vspf blinn_blend(std::shared_ptr<const std::vector<vspf>> fields, float blend_fa
     return std::make_shared<BlinnBlendField>(std::move(fields), blend_factor, shape_broadness);
 }
 
+vspf dilation(vspf a, float d){
+    auto eval_func = [a, d](const Vector& p){ return a->eval(p) - d ;};
+    auto grad_func = [a](const Vector& p){ return a->grad(p); };
+    return funcfield<float>(eval_func, grad_func);
+}
 
+vspf shell(vspf a, float d){
+    d /= 2.0;
+    auto outer = dilation(a, d);
+    auto inner = dilation(a, -d);
+    return cutout(outer, inner);
+}
 
 
 

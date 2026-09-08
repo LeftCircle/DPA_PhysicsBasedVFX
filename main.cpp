@@ -31,7 +31,7 @@ int main(int argc, char** argv){
 	
 
 	Camera cam;
-	cam.setEyeViewUp(Vector(0, 2.5, 10), Vector(0, -0.25, -1), Vector(0, 1, 0));
+	cam.setEyeViewUp(Vector(0, 0, 8), Vector(0, 0, -1), Vector(0, 1, 0));
 
 	// VolumeSPtr<float> a = isf_sphere(Vector(0, 0, 0), 0.5);
 	// auto a = isf_box(Vector(0, 0, 0), 0.5, 2);
@@ -49,13 +49,13 @@ int main(int argc, char** argv){
 	// auto s2 = isf_sphere(Vector(0.25, 0, 0), 0.5); 
 	// auto a = intersection(s1, s2);
 
-	// Blend doesn't work yet!
-	auto torus = isf_torus(Vector(), 3.0, 0.4, Vector(0, 0, 1));
-	auto box = isf_box(Vector(3, 0, 0), 1.0, 4);
-	torus = -torus;
-	box = -box;
-	auto a = blinn_blend(std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{box, torus}), 5.5, 2.0);
-	a = -a;
+	// Blend works!
+	// auto torus = isf_torus(Vector(), 3.0, 0.4, Vector(0, 0, 1));
+	// auto box = isf_box(Vector(3, 0, 0), 1.0, 4);
+	// torus = -torus;
+	// box = -box;
+	// auto a = blinn_blend(std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{box, torus}), 5.5, 1.0);
+	// a = -a;
 	//auto a = union_fields(torus, box);
 	
 	// auto s1 = isf_sphere(Vector(-0.5, 0, 0), 0.5);
@@ -83,6 +83,17 @@ int main(int argc, char** argv){
 	//vspf a = isf_cone(Vector(0, -0.5, 0), Vector(0, 1, 0), 1, 60 * PI / 360.0);
 	//a = scale(a, make_constant(0.25));
 
+	// auto c = isf_sphere(Vector(-2, 0, 0), 1);
+	// auto b = isf_sphere(Vector(2, 0, 0), 1);
+	// b = dilation(b, 0.5);
+
+	// auto a = union_fields(b, c);
+
+
+	auto s = isf_sphere(Vector(), 3);
+	s = shell(s, 0.01);
+	auto p = make_plane(Vector(), Vector(-1, 0, -1));
+	auto a = cutout(s, p);
 	a = -mask(a);
 	VolumeSPtr<Color> col = make_constant(Color(1, 0, 0, 0));
 
