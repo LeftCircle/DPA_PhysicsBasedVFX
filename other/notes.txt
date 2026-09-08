@@ -22,6 +22,13 @@ ctest --test-dir build --output-on-failure
 
 
 // ----------------------------------------------------------
+// Building python bindings
+// ----------------------------------------------------------
+cmake -S . -B build -DPBVFX_BUILD_PYTHON=ON
+cmake --build build --target physics_vfx_python --parallel
+
+
+// ----------------------------------------------------------
 // Building both imgviewer and physics_vfx
 // ----------------------------------------------------------
 
@@ -58,3 +65,23 @@ Then your repeated workflow only needs to build/run the renderer and launch the 
 ```bash
 cmake --build build --target physics_vfx --parallel
 
+
+
+// ----------------------------------------------------------------------
+// PYTHON BINDINGS
+// ----------------------------------------------------------------------
+import physics_vfx as vfx
+
+sphere = vfx.sphere(vfx.Vector(0, 0, 0), 0.5)
+
+print(sphere.eval(vfx.Vector(0, 0, 0)))
+print(sphere.grad(vfx.Vector(0.1, 0, 0)))
+
+custom = vfx.function_field(
+    lambda p: p.magnitude() - 0.5
+)
+
+custom_with_gradient = vfx.function_field(
+    lambda p: p.magnitude() - 0.5,
+    lambda p: p.unitvector()
+)
