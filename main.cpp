@@ -22,16 +22,16 @@ int main(int argc, char** argv){
 
 	ImageData test_image(1920 / 2, 1080 / 2, 4);
 	RayMarcher rm;
-	rm.set_ds(0.03);
+	rm.set_ds(0.01);
 	rm.set_snear(0);
-	rm.set_sfar(15);
+	rm.set_sfar(6);
 	rm.set_exticntion_coefficient(0.01);
 	//rm.set_exticntion_coefficient(0.0);
-	rm.set_Tmin(0.001);
+	rm.set_Tmin(0.0001);
 	
 
 	Camera cam;
-	cam.setEyeViewUp(Vector(0, 0, 8), Vector(0, 0, -1), Vector(0, 1, 0));
+	cam.setEyeViewUp(Vector(0, 0, 4), Vector(0, 0, -1), Vector(0, 1, 0));
 
 	// VolumeSPtr<float> a = isf_sphere(Vector(0, 0, 0), 0.5);
 	// auto a = isf_box(Vector(0, 0, 0), 0.5, 2);
@@ -90,10 +90,13 @@ int main(int argc, char** argv){
 	// auto a = union_fields(b, c);
 
 
-	auto s = isf_sphere(Vector(), 3);
-	s = shell(s, 0.01);
-	auto p = make_plane(Vector(), Vector(-1, 0, -1));
-	auto a = cutout(s, p);
+	// auto s = isf_sphere(Vector(), 3);
+	// s = shell(s, 0.01);
+	// auto p = make_plane(Vector(), Vector(-1, 0, -1));
+	// auto a = cutout(s, p);
+	
+	
+	auto a = isf_sphere(Vector(), 1);
 	a = -mask(a);
 	VolumeSPtr<Color> col = make_constant(Color(1, 0, 0, 0));
 
