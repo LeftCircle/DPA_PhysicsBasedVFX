@@ -164,13 +164,35 @@ private:
     float _r_minor_sq;
 };
 
+class PlaneField : public Volume<float>{
+public:
+	using typename Volume<float>::volumeDataType;
+	using typename Volume<float>::volumeGradType;
+    PlaneField() = default;
+	PlaneField(const Vector& point, const Vector& normal) : _point(point), _normal(normal.unitvector()) {}
+	PlaneField(Vector&& point, Vector&& normal) :
+		_point(std::move(point)), _normal(std::move(normal)) {}
+
+	const volumeDataType eval( const Vector& P ) const override { return _normal * (P - _point); }
+    const volumeGradType grad( const Vector& P ) const override { return _normal; }
+    virtual std::string typelabel() { return "Plane"; }
+
+private:
+	Vector _point;
+	Vector _normal;
+};
+
 class CylinderField : public Volume<float>{
 public:
     using volumeDataType = typename Volume<float>::volumeDataType;
     using volumeGradType = typename Volume<float>::volumeGradType;
 
-    CylinderField(const Vector& center, const Vector& normal, float radius) : 
-            _center(center), _normal(normal), _radius(radius) {};
+    CylinderField(const Vector& center, const Vector& normal, float radius, float height) : 
+            _center(center), _normal(normal), _radius(radius) {
+                float halfh = height * 0.5;
+                _plane1 = PlaneField(center + halfh * normal, -normal);
+                _plane2 = PlaneField(center - halfh * normal, normal);
+            };
     ~CylinderField() = default;
     
     const volumeDataType eval( const Vector& p ) const override;
@@ -181,6 +203,8 @@ private:
     Vector _center;
     Vector _normal;
     float _radius;
+    PlaneField _plane1;
+    PlaneField _plane2;
 };
 
 

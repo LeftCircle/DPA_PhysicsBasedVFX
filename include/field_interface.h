@@ -4,7 +4,6 @@
 
 #include "volume.h"
 #include "field_operations.h"
-#include "scalar_fields.h"
 #include "implicit_fields.h"
 #include "constructive_solid_geometry.h"
 

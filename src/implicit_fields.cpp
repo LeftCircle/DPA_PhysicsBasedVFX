@@ -64,5 +64,10 @@ const EllipseField::volumeDataType EllipseField::eval(const Vector& p ) const{
 
 const CylinderField::volumeDataType CylinderField::eval(const Vector& p) const {
     auto v = p - _center;
-    return (v - (v * _normal) * _normal).magnitude() - _radius;
+    float infinite_cyl = (v - (v * _normal) * _normal).magnitude() - _radius;
+    // now we have to cutout with the planes
+    //std::max(this->_a->eval(p), -std::get<0>(this->_values)->eval(p))
+    float cutout_p1 = std::max(infinite_cyl, -_plane1.eval(p));
+    float cutout_p2 = std::max(cutout_p1, -_plane2.eval(p));
+    return cutout_p2;
 }

@@ -116,12 +116,12 @@ VolumeSPtr<float> isf_ellipse(const Vector& center, const Vector& normal, float 
 
 
 VolumeSPtr<float> isf_cylinder(const Vector& center, const Vector& normal, float r, float h){
-    vspf cyl = std::make_shared<CylinderField>(center, normal, r);
-    float halfh = h * 0.5;
-    auto p0 = make_plane(center + halfh * normal, -normal);
-    auto p1 = make_plane(center - halfh * normal, normal);
-    cyl = cutout(cyl, p0);
-    cyl = cutout(cyl, p1);
+    vspf cyl = std::make_shared<CylinderField>(center, normal, r, h);
+    // float halfh = h * 0.5;
+    // auto p0 = make_plane(center + halfh * normal, -normal);
+    // auto p1 = make_plane(center - halfh * normal, normal);
+    // cyl = cutout(cyl, p0);
+    // cyl = cutout(cyl, p1);
     return cyl;
 }
 

@@ -11,7 +11,7 @@ using vecsptr = std::shared_ptr<const std::vector<vspf>>;
 
 vspf isf_staff(){
     auto staff = isf_cylinder(Vector(), Vector(1, 0, 0), 0.1, 3);
-    auto trans_staff = translate_fixed(staff, Vector(10, 0, 0));
+    auto trans_staff = rotate_fixed(staff, Vector(0, 0, 1), DEGTORAD(85));
     // auto torus = isf_torus(Vector(-1.5, 0, 0), 1.0, 0.25, Vector(0, 0, 1));
     // staff = blinn_blend(std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{-staff, -torus}), 0.1, 1);
     // staff = -staff;
