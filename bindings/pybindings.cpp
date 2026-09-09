@@ -6,17 +6,12 @@ ChatGPT mini
 
 #include <memory>
 #include <vector>
-#include <string>
-#include <stdexcept>
 
 #include <pybind11/functional.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include "field_interface.h"
-#include "ray_marcher.h"
-#include "image_data.h"
-#include "Color.h"
 
 namespace py = pybind11;
 using namespace lux;
@@ -38,22 +33,7 @@ PYBIND11_MODULE(physics_vfx, module)
                    std::to_string(value.X()) + ", " +
                    std::to_string(value.Y()) + ", " +
                    std::to_string(value.Z()) + ")";
-        })
-        .def("__add__", [](const Vector& a, const Vector& b) {
-            return a + b;
-        })
-        .def("__sub__", [](const Vector& a, const Vector& b) {
-            return a - b;
-        })
-        .def("__mul__", [](const Vector& value, double scalar) {
-            return value * scalar;
-        })
-        .def("__rmul__", [](const Vector& value, double scalar) {
-            return scalar * value;
-        })
-        .def("__iadd__", [](Vector& value, const Vector& other) -> Vector& {
-            return value += other;
-        }, py::return_value_policy::reference_internal);
+        });
 
     py::class_<Volume<float>, std::shared_ptr<Volume<float>>> field(
         module,
@@ -180,23 +160,24 @@ PYBIND11_MODULE(physics_vfx, module)
     module.def("shell", &shell);
     module.def("dilation", &dilation);
     module.def(
-        "blinn_blend",
-        [](const std::vector<vspf>& fields,
-            float blend_factor,
-            float shape_broadness) {
-            auto field_list =
-                std::make_shared<const std::vector<vspf>>(fields);
+    "blinn_blend",
+    [](const std::vector<vspf>& fields,
+        float blend_factor,
+        float shape_broadness) {
+        auto field_list =
+            std::make_shared<const std::vector<vspf>>(fields);
 
-            return blinn_blend(
-                std::move(field_list),
-                blend_factor,
-                shape_broadness
-            );
-        },
-        py::arg("fields"),
-        py::arg("blend_factor"),
-        py::arg("shape_broadness")
-    );
+        return blinn_blend(
+            std::move(field_list),
+            blend_factor,
+            shape_broadness
+        );
+    },
+    py::arg("fields"),
+    py::arg("blend_factor"),
+    py::arg("shape_broadness")
+);
+
 
     module.def(
         "subtract",
@@ -214,13 +195,7 @@ PYBIND11_MODULE(physics_vfx, module)
 
     module.def(
         "rotate",
-        [](const vspf& field, const Vector& axis, float angle) {
-            return lux::rotate<float>(
-                field,
-                lux::make_constant<Vector>(axis),
-                lux::make_constant<float>(angle)
-            );
-        },
+        &rotate<float>,
         py::arg("field"),
         py::arg("axis"),
         py::arg("angle")
@@ -268,64 +243,5 @@ PYBIND11_MODULE(physics_vfx, module)
         },
         py::arg("eval_function"),
         py::arg("grad_function") = py::none()
-    );
-
-    module.def(
-        "render_field",
-        [](const vspf& field,
-        const std::string& filename,
-        int width,
-        int height,
-        const Vector& eye,
-        const Vector& view,
-        const Vector& up,
-        float sfar,
-        float ds,
-        float kappa) {
-            if (width <= 0 || height <= 0) {
-                throw std::invalid_argument(
-                    "Image dimensions must be positive"
-                );
-            }
-
-            ImageData image(width, height, 4);
-
-            RayMarcher marcher;
-            marcher.set_ds(ds);
-            marcher.set_snear(0.0f);
-            marcher.set_sfar(sfar);
-            marcher.set_Tmin(0.001f);
-            marcher.set_exticntion_coefficient(kappa);
-
-            Camera camera;
-            camera.setEyeViewUp(eye, view, up);
-            camera.setAspectRatio(
-                static_cast<double>(width) /
-                static_cast<double>(height)
-            );
-
-            auto color = make_constant<Color>(
-                Color(1.0, 0.0, 0.0, 0.0)
-            );
-
-            marcher.ray_march_image(
-                camera,
-                image,
-                field,
-                color
-            );
-
-            image.oiio_write_to(filename);
-        },
-        py::arg("field"),
-        py::arg("filename"),
-        py::arg("width") = 960,
-        py::arg("height") = 540,
-        py::arg("eye") = Vector(0.0, 0.0, 0.15),
-        py::arg("view") = Vector(0.0, 0.0, -1.0),
-        py::arg("up") = Vector(0.0, 1.0, 0.0),
-        py::arg("sfar") = 0.5f,
-        py::arg("ds") = 0.001f,
-        py::arg("kappa") = 0.001f
     );
 }

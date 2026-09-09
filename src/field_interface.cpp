@@ -61,7 +61,19 @@ vspf shell(vspf a, float d){
     return cutout(outer, inner);
 }
 
+vspf translate_fixed(const vspf& a, const Vector& delta){
+    auto eval_func = [a, &delta](const Vector& p){
+        return a->eval(p - delta);
+    };
+    return funcfield<float>(eval_func);   
+}
 
+vspf rotate_fixed(const VolumeSPtr<float> a, const Vector& axis, float angle){
+    auto eval_func = [a, &axis, angle](const Vector& p){
+        return a->eval(rotation(p, axis, angle));
+    };
+    return funcfield<float>(eval_func);   
+}
 
 // ---------------------------------------------------------------------------------
 // fields!

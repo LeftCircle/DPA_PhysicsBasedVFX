@@ -35,10 +35,15 @@ VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta)
     return std::make_shared<TranslateField<T>>(a, delta);
 }
 
+vspf translate_fixed(const vspf& a, const Vector& delta);
+
 template<typename T>
 VolumeSPtr<T> rotate(const VolumeSPtr<T> a, const VolumeSPtr<Vector> axis, const VolumeSPtr<float> angle){
     return std::make_shared<RotateField<T>>(std::move(a), std::move(axis), std::move(angle));
 }
+
+vspf rotate_fixed(const VolumeSPtr<float> a, const Vector& axis, float angle);
+
 
 // ---------------------------------------------------------------------------------
 // float operations
