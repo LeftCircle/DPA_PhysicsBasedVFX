@@ -6,6 +6,9 @@
 # images
 *.exr
 
+# python
+/python/.venv/
+/python/
 
 # Compiled object files
 *.o

@@ -27,6 +27,10 @@ ctest --test-dir build --output-on-failure
 cmake -S . -B build -DPBVFX_BUILD_PYTHON=ON
 cmake --build build --target physics_vfx_python --parallel
 
+When running python, do
+PYTHONPATH=build/python python my_script.py
+don't forget to activate the virtual environment with source .venv/bin/activate
+
 
 // ----------------------------------------------------------
 // Building both imgviewer and physics_vfx

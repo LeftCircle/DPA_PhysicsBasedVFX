@@ -1,5 +1,10 @@
 {
-    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json"
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "python.defaultInterpreterPath": "${workspaceFolder}/python/.venv/bin/python",
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/build/python",
+        "${workspaceFolder}/python"
+    ]
 }
 
 
