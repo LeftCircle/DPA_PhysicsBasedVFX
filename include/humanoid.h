@@ -14,6 +14,7 @@ namespace lux{
 
 
 void raymarch_humanoid(const std::string& filename);
+vspf isf_staff();
 
 
 }
