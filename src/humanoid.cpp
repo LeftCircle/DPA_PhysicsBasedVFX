@@ -13,6 +13,8 @@ using vecsptr = std::shared_ptr<const std::vector<vspf>>;
 isf_col isf_staff(VolumeSPtr<Color> cf, float t){
     auto staff = isf_cylinder(Vector(), Vector(1, 0, 0), 0.1, 3.25);
     staff = translate_fixed(staff, Vector(1, 0, 0));
+    staff = dilation(staff, 0.002);
+    staff = staff * make_constant(5.0f);
     auto staff_color = make_constant(comfy_colors::white_stout);
     cf = staff_color*mask(staff) + cf * mask(-staff);
     auto cone = isf_cone(Vector(3, 0, 0), Vector(-1, 0, 0), 0.75, DEGTORAD(12.5));
@@ -29,6 +31,8 @@ isf_col isf_staff(VolumeSPtr<Color> cf, float t){
     auto sin_xf = funcfield<float>([](const Vector& p){return 0.15 * std::sin(p.X() * 15); });
     auto wave_disp = ramp_x * sin_xf;
     torus = translate(torus, make_constant(Vector(0, 0, 1)) * wave_disp);
+    torus = dilation(torus, 0.003);
+    torus = torus * make_constant(5.0f);
     auto torus_color = make_constant(comfy_colors::green_mountain);
     cf = torus_color * mask(torus) + cf * mask(-torus);
     staff = blinn_blend(std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{-staff, -torus, -cone}), 0.1, 1);
@@ -37,6 +41,8 @@ isf_col isf_staff(VolumeSPtr<Color> cf, float t){
     orb = rotate_fixed(orb, Vector(1, 1, 0), RADTODEG(15 * t));
     orb = scale_fixed(orb, Vector(0.1, 0.1, 0.1));
     orb = translate_fixed(orb, Vector(-1.5, 0, 0));
+    orb = dilation(orb, 0.003);
+    orb = orb * make_constant(5.0f);
     auto orb_color = make_constant(comfy_colors::purpple_eastside);
     cf = orb_color * mask(orb) + cf * mask(-orb);
     staff = union_fields(staff, orb);
@@ -102,11 +108,11 @@ isf_col isf_steiner_ring(vspc cf){
         new_stein = rotate_fixed(new_stein, Vector(1, 0, 0), DEGTORAD(45));
         new_stein = funcfield<float>([new_stein](const Vector& p){ return new_stein->eval(Vector(p.X() * p.X(), p.Y() * p.Y(), p.Z() * p.Z())); });
         new_stein = rotate_fixed(new_stein, Vector(0, 1, 0), RADTODEG(360.0 / n_patches * i));
-        new_stein = new_stein * make_constant(3000.0f);
+        new_stein = new_stein * make_constant(300.0f);
         steins = union_fields(steins, new_stein);
     }
     auto sc = make_constant(comfy_colors::purpple_eastside);
-    steins = scale_fixed(steins, Vector(1.45, 1.0, 1.45));
+    steins = scale_fixed(steins, Vector(1.65, 1.35, 1.65));
     cf = sc * mask(steins) + cf * mask(-steins);
     return isf_col(steins, cf);
 }
@@ -221,22 +227,27 @@ isf_col human(VolumeSPtr<Color> cf){
 
 }
 
-void raymarch_humanoid(const std::string& filename){
+void raymarch_humanoid(const std::string& filename, float t){
+    float cam_distance = 9;
+    float scene_width = 8;
+    float near = cam_distance - scene_width / 2.0;
+    float far = near + scene_width;
+    
     ImageData test_image(1920 / 4, 1080 / 4, 4);
 	RayMarcher rm;
-	float near = 2.0;
-    float far = 6.0;
+	// float near = 2.0;
+    // float far = 6.0;
     float ds = (far - near) / 75;
     rm.set_ds(ds);
-	rm.set_snear(3);
-	rm.set_sfar(6);
+	rm.set_snear(near);
+	rm.set_sfar(far);
 	rm.set_exticntion_coefficient(1);
 	//rm.set_exticntion_coefficient(0.0);
 	rm.set_Tmin(0.001);
 	
 	Camera cam;
     // down Z
-	cam.setEyeViewUp(Vector(0, 0, 5), Vector(0, 0, -1), Vector(0, 1, 0));
+	cam.setEyeViewUp(Vector(0, 0, cam_distance), Vector(0, 0, -1), Vector(0, 1, 0));
 	// down X
     // cam.setEyeViewUp(Vector(-5, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0));
     // up y
@@ -244,7 +255,7 @@ void raymarch_humanoid(const std::string& filename){
 
     
     VolumeSPtr<Color> cf = make_constant(Color(0, 0, 0, 0));
-    auto [staff, staff_col] = isf_staff(cf);
+    auto [staff, staff_col] = isf_staff(cf, t);
     cf = staff_col;
     staff = rotate_fixed(staff, Vector(1, 0, 0), DEGTORAD(65));
     staff = scale_fixed(staff, Vector(0.7, 0.7, 0.7));
