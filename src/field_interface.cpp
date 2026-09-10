@@ -61,18 +61,46 @@ vspf shell(vspf a, float d){
     return cutout(outer, inner);
 }
 
+vspf scale_fixed(const vspf& a, const Vector& scale){
+    Vector one_over_scale = Vector(1.0 / scale.X(), 1.0 / scale.Y(), 1.0 / scale.Z()); 
+    auto eval_func = [a, one_over_scale](const Vector& p){
+        return a->eval(Vector(p.X() * one_over_scale.X(), p.Y() * one_over_scale.Y(), p.Z() * one_over_scale.Z()));
+    };
+    return funcfield<float>(eval_func);
+}
+
 vspf translate_fixed(const vspf& a, const Vector& delta){
-    auto eval_func = [a, &delta](const Vector& p){
+    auto eval_func = [a, delta](const Vector& p){
         return a->eval(p - delta);
     };
     return funcfield<float>(eval_func);   
 }
 
 vspf rotate_fixed(const VolumeSPtr<float> a, const Vector& axis, float angle){
-    auto eval_func = [a, &axis, angle](const Vector& p){
+    auto eval_func = [a, axis, angle](const Vector& p){
         return a->eval(rotation(p, axis, angle));
     };
     return funcfield<float>(eval_func);   
+}
+
+float smoothstep(float edge0, float edge1, float x){
+    if (edge0 == edge1) {
+        return x < edge0 ? 0.0f : 1.0f;
+    }
+
+    float t = (x - edge0) / (edge1 - edge0);
+    t = std::clamp(t, 0.0f, 1.0f);
+
+    return t * t * (3.0f - 2.0f * t);
+}
+
+Vector smoothstep_lerp(
+    const Vector& a,
+    const Vector& b,
+    float t
+){
+    t = smoothstep(0.0f, 1.0f, t);
+    return a + (b - a) * t;
 }
 
 // ---------------------------------------------------------------------------------

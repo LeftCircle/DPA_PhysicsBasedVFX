@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <algorithm>
 
 #include "volume.h"
 #include "field_operations.h"
@@ -29,6 +30,8 @@ VolumeSPtr<T> scale(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b){
     return std::make_shared<ScaleField<T, U>>(a, b);
 }
 
+vspf scale_fixed(const vspf& a, const Vector& vec_scale);
+
 template<typename T>
 VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta){
     return std::make_shared<TranslateField<T>>(a, delta);
@@ -42,6 +45,10 @@ VolumeSPtr<T> rotate(const VolumeSPtr<T> a, const VolumeSPtr<Vector> axis, const
 }
 
 vspf rotate_fixed(const VolumeSPtr<float> a, const Vector& axis, float angle);
+
+float smoothstep(float edge0, float edge1, float x);
+
+Vector smoothstep_lerp(const Vector& a, const Vector& b, float t);
 
 
 // ---------------------------------------------------------------------------------

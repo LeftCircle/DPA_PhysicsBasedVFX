@@ -116,9 +116,16 @@ public:
 	}
 
 	const volumeGradType grad(const Vector& p) const override { 
-        return this->_a->grad(p) * std::get<0>(this->_values)->eval(p) + this->_a->eval(p) * 
-				std::get<0>(this->_values)->grad(p);
-    }
+		if constexpr (std::is_same_v<T, Color> && std::is_same_v<U, float>) {
+			return {};
+		} else {
+			return this->_a->grad(p) * std::get<0>(this->_values)->eval(p)
+				+ this->_a->eval(p) * std::get<0>(this->_values)->grad(p);
+		}
+	}	
+	// 	    return this->_a->grad(p) * std::get<0>(this->_values)->eval(p) + this->_a->eval(p) * 
+	// 			std::get<0>(this->_values)->grad(p);
+    // }
 };
 
 template <typename T, typename U>
