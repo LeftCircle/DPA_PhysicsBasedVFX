@@ -46,7 +46,7 @@ const MaskField::volumeDataType MaskField::eval(const Vector& p) const {
 const ClampField::volumeDataType ClampField::eval(const Vector& p) const {
     auto eval = this->_a->eval(p);
     auto min = std::get<0>(this->_values)->eval(p);
-    auto max = std::get<0>(this->_values)->eval(p);
+    auto max = std::get<1>(this->_values)->eval(p);
     if (eval < min){
         return min;
     } else if (eval > max){

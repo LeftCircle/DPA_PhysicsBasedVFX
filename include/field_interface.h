@@ -17,6 +17,14 @@ namespace lux{
 
 using vspf = VolumeSPtr<float>;
 
+template<typename T>
+VolumeSPtr<T> funcfield(
+    std::function<T(const Vector&)> eval_func,
+    std::function<typename Volume<T>::volumeGradType(const Vector&)> grad_func = {}
+){
+    return std::make_shared<FunctionField<T>>(std::move(eval_func), std::move(grad_func));
+}
+
 template<typename T, typename U>
 std::shared_ptr<Volume<T>> add(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b);
 
@@ -30,21 +38,39 @@ VolumeSPtr<T> scale(const VolumeSPtr<T>& a, const VolumeSPtr<U>& b){
     return std::make_shared<ScaleField<T, U>>(a, b);
 }
 
-vspf scale_fixed(const vspf& a, const Vector& vec_scale);
-
 template<typename T>
 VolumeSPtr<T> translate(const VolumeSPtr<T>& a, const VolumeSPtr<Vector>& delta){
     return std::make_shared<TranslateField<T>>(a, delta);
 }
-
-vspf translate_fixed(const vspf& a, const Vector& delta);
 
 template<typename T>
 VolumeSPtr<T> rotate(const VolumeSPtr<T> a, const VolumeSPtr<Vector> axis, const VolumeSPtr<float> angle){
     return std::make_shared<RotateField<T>>(std::move(a), std::move(axis), std::move(angle));
 }
 
-vspf rotate_fixed(const VolumeSPtr<float> a, const Vector& axis, float angle);
+template<typename T>
+VolumeSPtr<T> scale_fixed(const VolumeSPtr<T>& a, const Vector& scale){
+    Vector one_over_scale = Vector(1.0 / scale.X(), 1.0 / scale.Y(), 1.0 / scale.Z()); 
+    auto eval_func = [a, one_over_scale](const Vector& p){
+        return a->eval(Vector(p.X() * one_over_scale.X(), p.Y() * one_over_scale.Y(), p.Z() * one_over_scale.Z()));
+    };
+    return funcfield<T>(eval_func);
+}
+template<typename T>
+VolumeSPtr<T> translate_fixed(const VolumeSPtr<T>& a, const Vector& delta){
+    auto eval_func = [a, delta](const Vector& p){
+        return a->eval(p - delta);
+    };
+    return funcfield<T>(eval_func);   
+}
+template<typename T>
+VolumeSPtr<T> rotate_fixed(const VolumeSPtr<T> a, const Vector& axis, float angle){
+    auto eval_func = [a, axis, angle](const Vector& p){
+        return a->eval(rotation(p, axis, angle));
+    };
+    return funcfield<T>(eval_func);   
+}
+
 
 float smoothstep(float edge0, float edge1, float x);
 
@@ -54,13 +80,6 @@ Vector smoothstep_lerp(const Vector& a, const Vector& b, float t);
 // ---------------------------------------------------------------------------------
 // float operations
 // ---------------------------------------------------------------------------------
-template<typename T>
-VolumeSPtr<T> funcfield(
-    std::function<T(const Vector&)> eval_func,
-    std::function<typename Volume<T>::volumeGradType(const Vector&)> grad_func = {}
-){
-    return std::make_shared<FunctionField<T>>(std::move(eval_func), std::move(grad_func));
-}
 
 VolumeSPtr<float> exp(const VolumeSPtr<float>& a);
 

@@ -27,7 +27,7 @@ public:
 		 if (_grad_func){
 			return _grad_func(p);
 		} else {
-			return Volume<float>::grad(p);
+			return Volume<T>::grad(p);
 		}
 	}
 

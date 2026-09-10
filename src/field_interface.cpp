@@ -61,27 +61,6 @@ vspf shell(vspf a, float d){
     return cutout(outer, inner);
 }
 
-vspf scale_fixed(const vspf& a, const Vector& scale){
-    Vector one_over_scale = Vector(1.0 / scale.X(), 1.0 / scale.Y(), 1.0 / scale.Z()); 
-    auto eval_func = [a, one_over_scale](const Vector& p){
-        return a->eval(Vector(p.X() * one_over_scale.X(), p.Y() * one_over_scale.Y(), p.Z() * one_over_scale.Z()));
-    };
-    return funcfield<float>(eval_func);
-}
-
-vspf translate_fixed(const vspf& a, const Vector& delta){
-    auto eval_func = [a, delta](const Vector& p){
-        return a->eval(p - delta);
-    };
-    return funcfield<float>(eval_func);   
-}
-
-vspf rotate_fixed(const VolumeSPtr<float> a, const Vector& axis, float angle){
-    auto eval_func = [a, axis, angle](const Vector& p){
-        return a->eval(rotation(p, axis, angle));
-    };
-    return funcfield<float>(eval_func);   
-}
 
 float smoothstep(float edge0, float edge1, float x){
     if (edge0 == edge1) {
