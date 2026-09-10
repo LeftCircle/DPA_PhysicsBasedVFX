@@ -1,4 +1,5 @@
 #include "humanoid.h"
+#include "string_funcs.h"
 
 namespace lux{
 
@@ -260,40 +261,36 @@ isf_col combine_human_and_staff(float t){
 }
 
 void raymarch_humanoid(const std::string& filename, float t){
+    int n_images = 10;
+    int fps = 24;
     float cam_distance = 9;
     float scene_width = 8;
     float near = cam_distance - scene_width / 2.0;
     float far = near + scene_width;
-    
-    ImageData test_image(1920, 1080, 4);
-	RayMarcher rm;
-	// float near = 2.0;
-    // float far = 6.0;
-    float min_ds = (far - near) / 1000;
+    float dt = 1.0 / (float)fps;
+
+    RayMarcher rm;
+    float min_ds = (far - near) / 100;
     float max_ds = min_ds * 5;
-	rm.set_min_ds(min_ds);
+    rm.set_min_ds(min_ds);
     rm.set_max_ds(max_ds);
     rm.set_snear(near);
-	rm.set_sfar(far);
-	rm.set_exticntion_coefficient(1);
-	//rm.set_exticntion_coefficient(0.0);
-	rm.set_Tmin(0.001);
-	
-	Camera cam;
-    // down Z
-	cam.setEyeViewUp(Vector(0, 0, cam_distance), Vector(0, 0, -1), Vector(0, 1, 0));
-	// down X
-    // cam.setEyeViewUp(Vector(-5, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0));
-    // up y
-    // cam.setEyeViewUp(Vector(0, -5, 0), Vector(0, 1, 0), Vector(0, 0, 1));
-
-    
-    
-
+    rm.set_sfar(far);
+    rm.set_exticntion_coefficient(1);
+    rm.set_Tmin(0.001);
+    Camera cam;
     auto [humanoid, cf] = combine_human_and_staff(0);
-	rm.ray_march_image(cam, test_image, humanoid, cf);
-	test_image.oiio_write_to(filename);
-
+    for (int i = 0; i < n_images; i++){
+        ImageData render_img(1920, 1080, 4);
+        Vector eye = Vector(0, 0, cam_distance);
+        Vector view = Vector(0, 0, -1);
+        eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i));
+        view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i));
+        cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+        rm.ray_march_image(cam, render_img, humanoid, cf);
+        std::string frame_filename = filename + "." + StringFuncs::get_zero_padded_number_string(i, 4) + ".exr";
+        render_img.oiio_write_to(frame_filename);
+    }
 }
 
 } // end namespace lux
