@@ -227,33 +227,7 @@ isf_col human(VolumeSPtr<Color> cf){
 
 }
 
-void raymarch_humanoid(const std::string& filename, float t){
-    float cam_distance = 9;
-    float scene_width = 8;
-    float near = cam_distance - scene_width / 2.0;
-    float far = near + scene_width;
-    
-    ImageData test_image(1920 / 4, 1080 / 4, 4);
-	RayMarcher rm;
-	// float near = 2.0;
-    // float far = 6.0;
-    float ds = (far - near) / 75;
-    rm.set_ds(ds);
-	rm.set_snear(near);
-	rm.set_sfar(far);
-	rm.set_exticntion_coefficient(1);
-	//rm.set_exticntion_coefficient(0.0);
-	rm.set_Tmin(0.001);
-	
-	Camera cam;
-    // down Z
-	cam.setEyeViewUp(Vector(0, 0, cam_distance), Vector(0, 0, -1), Vector(0, 1, 0));
-	// down X
-    // cam.setEyeViewUp(Vector(-5, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0));
-    // up y
-    // cam.setEyeViewUp(Vector(0, -5, 0), Vector(0, 1, 0), Vector(0, 0, 1));
-
-    
+isf_col combine_human_and_staff(float t){
     VolumeSPtr<Color> cf = make_constant(Color(0, 0, 0, 0));
     auto [staff, staff_col] = isf_staff(cf, t);
     cf = staff_col;
@@ -282,21 +256,41 @@ void raymarch_humanoid(const std::string& filename, float t){
     auto [steins, scol] = isf_steiner_ring(cf);
     cf = cf + scol;
     humanoid = union_fields(humanoid, steins);
+    return isf_col(humanoid, cf);
+}
 
+void raymarch_humanoid(const std::string& filename, float t){
+    float cam_distance = 9;
+    float scene_width = 8;
+    float near = cam_distance - scene_width / 2.0;
+    float far = near + scene_width;
+    
+    ImageData test_image(1920, 1080, 4);
+	RayMarcher rm;
+	// float near = 2.0;
+    // float far = 6.0;
+    float min_ds = (far - near) / 1000;
+    float max_ds = min_ds * 5;
+	rm.set_min_ds(min_ds);
+    rm.set_max_ds(max_ds);
+    rm.set_snear(near);
+	rm.set_sfar(far);
+	rm.set_exticntion_coefficient(1);
+	//rm.set_exticntion_coefficient(0.0);
+	rm.set_Tmin(0.001);
+	
+	Camera cam;
+    // down Z
+	cam.setEyeViewUp(Vector(0, 0, cam_distance), Vector(0, 0, -1), Vector(0, 1, 0));
+	// down X
+    // cam.setEyeViewUp(Vector(-5, 0, 0), Vector(1, 0, 0), Vector(0, 1, 0));
+    // up y
+    // cam.setEyeViewUp(Vector(0, -5, 0), Vector(0, 1, 0), Vector(0, 0, 1));
 
-    // humanoid = -mask(humanoid);
-	//VolumeSPtr<Color> col = make_constant(Color(1, 0, 0, 0));
+    
+    
 
-	//VolumeSPtr<Color> final_col = col * mask(-a) + col * mask(a);
-	auto const_r = make_constant(Color(1, 0, 0, 0));
-    auto const_b = make_constant(Color(0, 0, 1, 0));
-
-    //cf = const_b * mask(-staff) + cf * mask(staff);
-
-    // auto [head, head_col] = isf_head(cf);
-    // auto humanoid = head;
-    //humanoid = -mask(humanoid);
-    // cf = head_col;
+    auto [humanoid, cf] = combine_human_and_staff(0);
 	rm.ray_march_image(cam, test_image, humanoid, cf);
 	test_image.oiio_write_to(filename);
 

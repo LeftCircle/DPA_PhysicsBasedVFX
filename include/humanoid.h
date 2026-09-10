@@ -16,6 +16,8 @@ using isf_col = std::tuple<vspf, vspc>;
 
 
 void raymarch_humanoid(const std::string& filename, float t = 0);
+
+isf_col combine_human_and_staff(float t = 0);
 isf_col human(VolumeSPtr<Color> cf);
 isf_col isf_staff(VolumeSPtr<Color> cf, float t = 0);
 isf_col isf_head(vspc cf);

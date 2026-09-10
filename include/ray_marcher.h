@@ -34,6 +34,8 @@ public:
     void set_sfar(float sfar) { _sfar = sfar; }
     void set_Tmin(float tmin) { _Tmin = tmin; }
     void set_ds(float ds) { _ds = ds; }
+    void set_min_ds(float min) { _min_ds = min; }
+    void set_max_ds(float max) { _max_ds = max; }
     void set_exticntion_coefficient(float kappa) { _kappa = kappa; _one_over_kappa = 1.0 / kappa; }
 
 
@@ -45,6 +47,8 @@ private:
     float _ds = 1.0;
     float _kappa = 1.0; // extinction coefficient
     float _one_over_kappa = 1.0;
+    float _min_ds;
+    float _max_ds;
 };
 
 }

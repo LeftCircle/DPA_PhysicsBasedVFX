@@ -1,5 +1,6 @@
 #include "ray_marcher.h"
 #include <iostream>
+#include <random>
 
 using namespace lux;
 
@@ -20,20 +21,23 @@ Color RayMarcher::ray_march_single_pixel(
     Color L(0,0,0,0);
     double s = _snear;
     Vector X = eye + direction * s;
+    thread_local std::mt19937 generator(std::random_device{}());
+    std::uniform_real_distribution<float> distribution(_min_ds, _max_ds);
     while( s < _sfar && T > _Tmin ) {
         float den = density->eval(X);
+        float ds = distribution(generator);
         if( den < 0.0 ){
             if (_kappa == 0.0){
                 L += color->eval(X);
                 T = 0;
             } else {
-                float dT = std::exp( _ds * _kappa * den ); // dens is negative here, so remove - mult;
+                float dT = std::exp( ds * _kappa * den ); // dens is negative here, so remove - mult;
                 L += color->eval(X) * (1-dT) * T * _one_over_kappa;
                 T *= dT;
             }
         }
-        X += direction * _ds;
-        s += _ds;
+        X += direction * ds;
+        s += ds;
     }
     L[3] = 1-T; // set the alpha channel to the opacity
     return L;
