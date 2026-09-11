@@ -5,6 +5,7 @@
 
 # images
 *.exr
+*.mkv
 
 # python
 /python/.venv/

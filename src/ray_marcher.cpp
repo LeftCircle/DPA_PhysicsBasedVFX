@@ -59,6 +59,7 @@ void RayMarcher::ray_march_image(
     const Vector& vhat = cam.up();
     const Vector& ncam = cam.view();
     const Vector& eye = cam.eye();
+
     #pragma omp parallel for
     for (int j = 0; j < img.get_height(); j++){
         for (int i = 0; i < img.get_width(); i++){

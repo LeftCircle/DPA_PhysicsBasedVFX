@@ -239,9 +239,9 @@ isf_col combine_human_and_staff(float t){
     cf = scale_fixed(cf, Vector(0.7, 0.7, 0.7));
     cf = translate_fixed(cf, Vector(-0.9, 0.2, 0));
     staff = rotate_fixed(staff, Vector(0, 0, 1), DEGTORAD(30));
-    staff = translate_fixed(staff, Vector(0.35, 0.4, 0));
+    staff = translate_fixed(staff, Vector(0.375, 0.425, 0));
     cf = rotate_fixed(cf, Vector(0, 0, 1), DEGTORAD(30));
-    cf = translate_fixed(cf, Vector(0.35, 0.4, 0));
+    cf = translate_fixed(cf, Vector(0.375, 0.425, 0));
     
     auto [humanoid, human_col] = human(cf);
     humanoid = scale_fixed(humanoid, Vector(0.75, 0.75, 0.75));
@@ -261,26 +261,30 @@ isf_col combine_human_and_staff(float t){
 }
 
 void raymarch_humanoid(const std::string& filename, float t){
-    int n_images = 10;
+    int n_images = 120;
     int fps = 24;
     float cam_distance = 9;
-    float scene_width = 8;
+    float scene_width = 5;
     float near = cam_distance - scene_width / 2.0;
     float far = near + scene_width;
     float dt = 1.0 / (float)fps;
 
     RayMarcher rm;
-    float min_ds = (far - near) / 100;
-    float max_ds = min_ds * 5;
+    float min_ds = (far - near) / 330;
+    float max_ds = min_ds * 3.65;
     rm.set_min_ds(min_ds);
     rm.set_max_ds(max_ds);
     rm.set_snear(near);
     rm.set_sfar(far);
-    rm.set_exticntion_coefficient(1);
+    rm.set_exticntion_coefficient(3.0);
     rm.set_Tmin(0.001);
     Camera cam;
-    auto [humanoid, cf] = combine_human_and_staff(0);
-    for (int i = 0; i < n_images; i++){
+    //humanoid = -mask(humanoid);
+
+    for (int i = 88; i < n_images; i++){
+        auto [humanoid, cf] = combine_human_and_staff(t);
+        // auto col = make_constant<Color>(Color(0, 0, 0, 0));
+        // auto [humanoid, cf] = isf_staff(col, t);
         ImageData render_img(1920, 1080, 4);
         Vector eye = Vector(0, 0, cam_distance);
         Vector view = Vector(0, 0, -1);
@@ -290,6 +294,7 @@ void raymarch_humanoid(const std::string& filename, float t){
         rm.ray_march_image(cam, render_img, humanoid, cf);
         std::string frame_filename = filename + "." + StringFuncs::get_zero_padded_number_string(i, 4) + ".exr";
         render_img.oiio_write_to(frame_filename);
+        t += dt;
     }
 }
 
