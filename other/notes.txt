@@ -20,6 +20,10 @@ cmake -S . -B build -DBUILD_TESTING=ON
 cmake --build build --target pbvfx_tests --parallel
 ctest --test-dir build --output-on-failure
 
+To build with optimizations
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target physics_vfx --parallel
+
 
 // ----------------------------------------------------------
 // Building python bindings
@@ -89,3 +93,117 @@ custom_with_gradient = vfx.function_field(
     lambda p: p.magnitude() - 0.5,
     lambda p: p.unitvector()
 )
+
+
+
+
+better tempalted funcfield to avoid std::function overhead
+
+I’ll inspect the `Volume` interface and how `FunctionField` is constructed, because the main tradeoff is between zero-overhead compile-time callables and preserving runtime polymorphism through `Volume<T>`.
+
+Searched for regex `FunctionField<|make_shared<FunctionField|FunctionField\(` (`**/*.{cpp,h,hpp}`), 4 results
+
+Searched for regex `\.eval\(|->eval\(|\.grad\(|->grad\(` (`**/src/**`), 28 results
+
+Read , lines 1 to 180
+
+The current design has two distinct costs: `std::function` type-erases the callable inside `FunctionField`, while every use through `Volume<T>*` already incurs virtual dispatch. I’m checking the factory and Python boundary to distinguish what can be removed safely from what is required by the existing runtime-polymorphic API.
+
+Read , lines 150 to 200
+
+Read , lines 1 to 100
+
+Read , lines 1 to 100
+
+Read , lines 205 to 247
+
+Yes. For the C++ API, a templated callable holder avoids `std::function`’s type-erasure and indirect invocation.
+
+Your current overhead occurs in both places:
+
+```cpp
+std::function<volumeDataType(const Vector&)>
+```
+
+in `FunctionField`, and again in `field_interface.h` where `funcfield` accepts `std::function`.
+
+A modern alternative is to make the callable types template parameters:
+
+```cpp
+template<class T, class Eval, class Grad = std::nullptr_t>
+class FunctionField : public Volume<T> {
+public:
+    using volumeDataType = typename Volume<T>::volumeDataType;
+    using volumeGradType = typename Volume<T>::volumeGradType;
+
+    template<class E, class G = Grad>
+    FunctionField(E&& eval, G&& grad = {})
+        : _eval(std::forward<E>(eval)),
+          _grad(std::forward<G>(grad)) {}
+
+    volumeDataType eval(const Vector& p) const override {
+        return _eval(p);
+    }
+
+    volumeGradType grad(const Vector& p) const override {
+        if constexpr (std::is_same_v<Grad, std::nullptr_t>) {
+            return Volume<T>::grad(p);
+        } else {
+            return _grad(p);
+        }
+    }
+
+private:
+    Eval _eval;
+    Grad _grad;
+};
+```
+
+The factory should also be templated:
+
+```cpp
+template<class T, class Eval, class Grad = std::nullptr_t>
+VolumeSPtr<T> funcfield(Eval&& eval, Grad&& grad = {}) {
+    using EvalType = std::decay_t<Eval>;
+    using GradType = std::decay_t<Grad>;
+
+    return std::make_shared<
+        FunctionField<T, EvalType, GradType>
+    >(
+        std::forward<Eval>(eval),
+        std::forward<Grad>(grad)
+    );
+}
+```
+
+You would need to include:
+
+```cpp
+#include <utility>
+```
+
+This gives direct calls such as:
+
+```cpp
+auto field = funcfield<float>(
+    [](const Vector& p) {
+        return p.length();
+    },
+    [](const Vector& p) {
+        return p.unitvector();
+    }
+);
+```
+
+The lambda’s concrete type is stored directly, so the callable invocation can be inlined. However, because the result is still returned as `VolumeSPtr<T>`, calls through that pointer retain the virtual dispatch cost:
+
+```cpp
+VolumeSPtr<float> field = funcfield<float>(...);
+field->eval(p); // virtual dispatch remains
+```
+
+So this removes the `std::function` overhead, but not the existing `Volume<T>` polymorphism.
+
+The Python binding in `pybindings.cpp` is a separate case. Since `py::function` is inherently runtime/type-erased and requires Python GIL handling, it cannot benefit much from compile-time callable storage. You can keep `std::function` there, or construct the templated `FunctionField` directly with the lambda types.
+
+One important design choice: use the templated version for C++ factories, but retain a type-erased wrapper only where runtime polymorphism is genuinely required, such as the Python API.
