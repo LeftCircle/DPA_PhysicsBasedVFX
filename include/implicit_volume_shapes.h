@@ -1,6 +1,0 @@
-#ifndef _IMPLICIT_VOLUME_SHAPES_H
-#define _IMPLICIT_VOLUME_SHAPES_H
-
-
-
-#endif

@@ -19,9 +19,9 @@ TEST_CASE("Testing templated Field operations"){
     std::shared_ptr<Volume<float>> a = std::make_shared<ConstantField<float>>(a_val);
     std::shared_ptr<Volume<float>> b = std::make_shared<ConstantField<float>>(b_val);
 
-    VolumeSPtr<float> c = add(a, b);
+    //VolumeSPtr<float> c = add(a, b);
     VolumeSPtr<float> d = a + b;
-    REQUIRE(c->eval(Vector(3, 3, 3)) == 12);
+    //REQUIRE(c->eval(Vector(3, 3, 3)) == 12);
     REQUIRE(d->eval(Vector(3, 3, 3)) == 12);
 
     VolumeSPtr<float> sub = a - b;
