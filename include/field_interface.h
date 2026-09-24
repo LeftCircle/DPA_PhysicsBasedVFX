@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <algorithm>
+#include <openvdb/openvdb.h>
+#include <openvdb/tools/Interpolation.h>
 
 #include "volume.h"
 #include "field_operations.h"
@@ -137,6 +139,18 @@ VolumeSPtr<float> isf_ellipse(const Vector& center, const Vector& normal, float 
 
 VolumeSPtr<float> isf_cylinder(const Vector& center, const Vector& normal, float r, float h);
 
+
+// ---------------------------------------------------------------------------------
+// Grids!
+// ---------------------------------------------------------------------------------
+inline vspf make_grid_field(const openvdb::FloatGrid::Ptr& grid){
+    auto eval_func = [grid](const Vector& p){
+        openvdb::Vec3R val(p.X(), p.Y(), p.Z()); 
+        auto res = openvdb::tools::BoxSampler::sample(grid->tree(), val);//{p.X(), p.Y(), p.Z()});
+        return res;
+    };
+    return funcfield<float>(eval_func);
+}
 
 } // end namespace lux
 

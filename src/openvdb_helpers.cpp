@@ -5,7 +5,8 @@ namespace lux{
 
 
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, const openvdb::FloatGrid::Ptr grid){
-    auto voxel_size = grid->transform().voxelSize().x(); 
+    auto voxel_size = grid->transform().voxelSize().x();
+    //auto voxel_size = vs;
     int width = (int)((std::ceil((urc - llc).X() / voxel_size)));
     int height = (int)((std::ceil((urc - llc).Y() / voxel_size)));
     int depth = (int)((std::ceil((urc - llc).Z() / voxel_size)));

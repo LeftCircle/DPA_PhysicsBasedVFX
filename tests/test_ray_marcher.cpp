@@ -12,5 +12,5 @@ TEST_CASE("test ray marcher image size"){
     int test_height = 1080;
     rm.set_dimensions(test_width, test_height, 1);
     REQUIRE(rm.get_width() == test_width);
-    REQUIRE(rm.get_width() == test_height);
+    REQUIRE(rm.get_height() == test_height);
 }

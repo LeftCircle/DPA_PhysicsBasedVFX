@@ -100,15 +100,14 @@ TEST_CASE("Test stamping IF into a grid"){
     openvdb::initialize();
 
     float voxel_size = 0.1;
-    float half_narrow_bandwidth = voxel_size * 3;
-    //auto level_set = openvdb::createLevelSet<openvdb::FloatGrid>(voxel_size, half_narrow_bandwidth);
     float default_val = 100.0;
     auto grid = openvdb::FloatGrid::create(default_val);
+    grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
     grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
 
     // Bounds should completely encompas the llc/urc
     Vector urc = Vector(1, 1, 1) * radius / 2.0;;
-    Vector llc = -llc;
+    Vector llc = -urc;
     openvdb::CoordBBox bounds = world_space_to_bounds(llc, urc, grid);
 
 
@@ -130,16 +129,37 @@ TEST_CASE("Test stamping IF into a grid"){
     
     
     // stamp into level set
-    stamp_grid(grid, isf_sphere->eval, bounds);
+    stamp_grid(grid, [sphere](const Vector& p){return sphere->eval(p); }, bounds);
+    
     
     // evaluate level set at some points
     openvdb::FloatGrid::Accessor accessor = grid->getAccessor();
 
     // The left most point on the x axis shouldn't have a value due to padding, but one beside it should
-    REQUIRE(accessor.getValue(openvdb::Coord(-width / 2, 0, 0)) == default_val);
+    REQUIRE(accessor.getValue(openvdb::Coord(-width / 2 - 1, 0, 0)) == default_val);
     REQUIRE(accessor.getValue(openvdb::Coord(-width / 2 + 1, 0, 0)) <= 0);
 
     REQUIRE(accessor.getValue(openvdb::Coord(0, 0, 0)) == -radius);
+}
+
+TEST_CASE("Test trilinear interpolation in eval"){
+    // Create a GridField
+    openvdb::initialize();
+
+    float voxel_size = 1.0;
+    float default_val = 0.0;
+    auto grid = openvdb::FloatGrid::create(default_val);
+    grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+
+    auto grid_field = make_grid_field(grid);
+    auto ac = grid->getAccessor();
+    ac.setValue(ocoord(0, 1, 0), 10.0);
+    ac.setValue(ocoord(1, 1, 0), 10.0);
+    ac.setValue(ocoord(0, 1, 1), 10.0);
+    ac.setValue(ocoord(1, 1, 1), 10.0);
+
+    REQUIRE(grid_field->eval(Vector(0.5, 0.5, 0.5)) == 5.0);
 
 
 }

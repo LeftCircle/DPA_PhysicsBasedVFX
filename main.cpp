@@ -2,8 +2,7 @@
 #include <memory>
 
 #include "command_line_parser.h"
-#include "humanoid.h"
-
+#include "raymarch_playground.h"
 
 using namespace lux;
 
@@ -19,7 +18,7 @@ int main(int argc, char** argv){
 	}
 
 	
-	raymarch_humanoid(file_name);
+	raymarch_things(file_name);
 
 	return 0;
 }

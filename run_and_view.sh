@@ -8,6 +8,7 @@ fi
 
 IMAGE="$1"
 
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --target physics_vfx --parallel
 
 ./build/physics_vfx -image "$IMAGE"

@@ -207,3 +207,81 @@ So this removes the `std::function` overhead, but not the existing `Volume<T>` p
 The Python binding in `pybindings.cpp` is a separate case. Since `py::function` is inherently runtime/type-erased and requires Python GIL handling, it cannot benefit much from compile-time callable storage. You can keep `std::function` there, or construct the templated `FunctionField` directly with the lambda types.
 
 One important design choice: use the templated version for C++ factories, but retain a type-erased wrapper only where runtime polymorphism is genuinely required, such as the Python API.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+voxel stuff being difficult:
+
+The sphere is stamped in **grid index space**, but `make_grid_field()` samples using world-space coordinates as if they were index coordinates:
+
+```cpp
+auto res = openvdb::tools::BoxSampler::sample(grid->tree(), val);
+```
+
+With a voxel size of `0.1`:
+
+- Grid index `20` represents world position `2.0`
+- The ray marcher evaluates positions such as `z = 5..15`
+- `BoxSampler::sample()` interprets those as indices `5..15`, not world positions
+
+This makes the density field appear in the wrong place. The density can become negative before the ray reaches the actual sphere, extinguishing the ray before the color field becomes green.
+
+Use a transform-aware sampler:
+
+```cpp
+inline vspf make_grid_field(const openvdb::FloatGrid::Ptr& grid) {
+    using Sampler = openvdb::tools::GridSampler<
+        openvdb::FloatGrid::ConstAccessor,
+        openvdb::tools::BoxSampler
+    >;
+
+    auto sampler = std::make_shared<Sampler>(
+        grid->getConstAccessor(),
+        grid->transform()
+    );
+
+    auto eval_func = [sampler](const Vector& p) {
+        return sampler->wsSample(
+            openvdb::Vec3d(p.X(), p.Y(), p.Z())
+        );
+    };
+
+    return funcfield<float>(eval_func);
+}
+```
+
+`wsSample()` accepts world-space coordinates and applies the grid transform correctly.
+
+Alternatively, explicitly convert world space to index space:
+
+```cpp
+auto eval_func = [grid](const Vector& p) {
+    openvdb::Vec3d world(p.X(), p.Y(), p.Z());
+    openvdb::Vec3d index = grid->worldToIndex(world);
+
+    return openvdb::tools::BoxSampler::sample(grid->tree(), index);
+};
+```
+
+The first approach is preferable because it directly expresses the intended sampling behavior.
