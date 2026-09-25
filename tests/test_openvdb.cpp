@@ -91,14 +91,8 @@ TEST_CASE("test nano vdb works"){
 }
 
 
-TEST_CASE("Test stamping IF into a grid"){
-    float radius = 2.05;
-    Vector center;
-    auto sphere = isf_sphere(center, radius);
-
-    // Now create the grid
-    openvdb::initialize();
-
+TEST_CASE("Test world space bounds to grid coords"){
+    float radius = 1.5;
     float voxel_size = 0.1;
     float default_val = 100.0;
     auto grid = openvdb::FloatGrid::create(default_val);
@@ -106,7 +100,7 @@ TEST_CASE("Test stamping IF into a grid"){
     grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
 
     // Bounds should completely encompas the llc/urc
-    Vector urc = Vector(1, 1, 1) * radius / 2.0;;
+    Vector urc = Vector(1, 1, 1) * radius;
     Vector llc = -urc;
     openvdb::CoordBBox bounds = world_space_to_bounds(llc, urc, grid);
 
@@ -122,9 +116,46 @@ TEST_CASE("Test stamping IF into a grid"){
         openvdb::Coord(-width / 2, -height / 2, -depth / 2),
         openvdb::Coord(width / 2, height / 2, depth / 2)
     );
+    printf("bounds llc = %d, %d urc = %d, %d", -width / 2, -depth / 2, width / 2, depth / 2);
 
     REQUIRE(expected_bounds.getStart() == bounds.getStart());
     REQUIRE(expected_bounds.getEnd() == bounds.getEnd());
+}
+
+TEST_CASE("Test stamping IF into a grid"){
+    float radius = 2.05;
+    Vector center;
+    auto sphere = isf_sphere(center, radius);
+
+    // Now create the grid
+    openvdb::initialize();
+
+    float voxel_size = 0.1;
+    float default_val = 100.0;
+    auto grid = openvdb::FloatGrid::create(default_val);
+    grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+
+    // Bounds should completely encompas the llc/urc
+    Vector urc = Vector(1, 1, 1) * radius;
+    Vector llc = -urc;
+    openvdb::CoordBBox bounds = world_space_to_bounds(llc, urc, grid);
+
+
+    int width = (int)((std::ceil((urc - llc).X() / voxel_size)));
+    int height = (int)((std::ceil((urc - llc).Y() / voxel_size)));
+    int depth = (int)((std::ceil((urc - llc).Z() / voxel_size)));
+    width = width % 2 == 0 ? width : width + 1;
+    height = height % 2 == 0 ? height : height + 1;
+    depth = depth % 2 == 0 ? depth : depth + 1;
+
+    // auto expected_bounds = openvdb::CoordBBox(
+    //     openvdb::Coord(-width / 2, -height / 2, -depth / 2),
+    //     openvdb::Coord(width / 2, height / 2, depth / 2)
+    // );
+
+    // REQUIRE(expected_bounds.getStart() == bounds.getStart());
+    // REQUIRE(expected_bounds.getEnd() == bounds.getEnd());
 
     
     

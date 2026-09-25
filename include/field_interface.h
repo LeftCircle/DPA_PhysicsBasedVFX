@@ -143,13 +143,39 @@ VolumeSPtr<float> isf_cylinder(const Vector& center, const Vector& normal, float
 // ---------------------------------------------------------------------------------
 // Grids!
 // ---------------------------------------------------------------------------------
-inline vspf make_grid_field(const openvdb::FloatGrid::Ptr& grid){
+template<typename T>
+struct GridTypes;
+
+template<>
+struct GridTypes<float>{
+    using GridType = openvdb::FloatGrid::Ptr;
+
+    static float from_grid(float val) noexcept { return val; }
+    static float to_grid(float val) noexcept { return val; }
+};
+
+template<>
+struct GridTypes<Color>{
+    using GridType = openvdb::Vec3SGrid::Ptr;
+
+    static Color from_grid(const openvdb::Vec3s& val) noexcept {
+        return Color(val.x(), val.y(), val.z(), 0);
+    }
+
+    static openvdb::Vec3s to_grid(const Color& col) noexcept {
+        return {col.red(), col.green(), col.blue()};
+    }
+};
+
+
+template<typename T>
+VSPtr<T> make_grid_field(const typename GridTypes<T>::GridType grid){
     auto eval_func = [grid](const Vector& p){
-        openvdb::Vec3R val(p.X(), p.Y(), p.Z()); 
-        auto res = openvdb::tools::BoxSampler::sample(grid->tree(), val);//{p.X(), p.Y(), p.Z()});
-        return res;
+        auto index = grid->worldToIndex(openvdb::Vec3d(p.X(), p.Y(), p.Z()));
+        auto val = openvdb::tools::BoxSampler::sample(grid->tree(), index);
+        return GridTypes<T>::from_grid(val);
     };
-    return funcfield<float>(eval_func);
+    return funcfield<T>(eval_func);
 }
 
 } // end namespace lux
