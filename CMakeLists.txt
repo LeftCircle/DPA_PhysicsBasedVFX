@@ -60,6 +60,16 @@ add_subdirectory(
     "${CMAKE_CURRENT_BINARY_DIR}/DPA_ImageProcessing"
 )
 
+
+# ------------------------------------------------------------
+# Physics Based Animation!
+# ------------------------------------------------------------
+
+add_subdirectory(
+    "${CMAKE_CURRENT_SOURCE_DIR}/third_party/DPA_PhysicsBasedAnimation"
+    "${CMAKE_CURRENT_BINARY_DIR}/DPA_PhysicsBasedAnimation"
+)
+
 # ------------------------------------------------------------
 # OpenVDB
 # ------------------------------------------------------------
@@ -114,6 +124,7 @@ target_include_directories(pbvfx
 target_link_libraries(pbvfx
     PUBLIC
         starter
+        pba
         image_processing
         OpenVDB::openvdb
         Boost::headers

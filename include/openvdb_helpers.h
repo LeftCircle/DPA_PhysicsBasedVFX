@@ -10,6 +10,7 @@ namespace lux{
 using ocoord = openvdb::Coord;
 
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, const openvdb::FloatGrid::Ptr grid);
+openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, float voxel_size);
 
 template <typename T, typename Func, typename CondFunc>
 void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condition_func, openvdb::CoordBBox bounds){

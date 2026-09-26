@@ -1,13 +1,20 @@
 #include <iostream>
+#include <string>
+
 #include <catch2/catch_test_macros.hpp>
 
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/LevelSetSphere.h> // replace with your own dependencies for generating the OpenVDB grid
 #include <nanovdb/tools/CreateNanoGrid.h> // converter from OpenVDB to NanoVDB (includes NanoVDB.h and GridManager.h)
 #include <nanovdb/io/IO.h>
+#include <openvdb/tools/MeshToVolume.h>
+
+#include <boost/range/algorithm/copy.hpp>
 
 #include "field_interface.h"
 #include "openvdb_helpers.h"
+#include "obj_reader.h"
+#include "AABB.h"
 
 using namespace lux;
 
@@ -160,7 +167,7 @@ TEST_CASE("Test stamping IF into a grid"){
     
     
     // stamp into level set
-    stamp_grid(grid, [sphere](const Vector& p){return sphere->eval(p); }, bounds);
+    stamp_grid<float>(grid, [sphere](const Vector& p){return sphere->eval(p); }, [](float val){return val < 0;}, bounds);
     
     
     // evaluate level set at some points
@@ -183,7 +190,7 @@ TEST_CASE("Test trilinear interpolation in eval"){
     grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
     grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
 
-    auto grid_field = make_grid_field(grid);
+    auto grid_field = make_grid_field<float>(grid);
     auto ac = grid->getAccessor();
     ac.setValue(ocoord(0, 1, 0), 10.0);
     ac.setValue(ocoord(1, 1, 0), 10.0);
@@ -191,6 +198,56 @@ TEST_CASE("Test trilinear interpolation in eval"){
     ac.setValue(ocoord(1, 1, 1), 10.0);
 
     REQUIRE(grid_field->eval(Vector(0.5, 0.5, 0.5)) == 5.0);
+}
+
+
+TEST_CASE("Test create level set from obj"){
+    openvdb::initialize();
+
+    std::string obj_filepath = "third_party/starter/models/ajax/smallajax.obj";
+
+    ObjReader<openvdb::Vec3s> objreader(obj_filepath);
+    pba::AABB aabb;
+    const auto& verts = objreader.get_verts();
+    const auto& faces = objreader.get_faces();
+    std::vector<openvdb::Vec3s> points;
+    points.reserve(verts.size());
+    boost::copy(verts, std::back_inserter(points));
+
+    auto face_to_openvdb = [](const cato::Vec3i& face) {
+        return openvdb::Vec3I(face.x(), face.y(), face.z());
+    };
+
+    std::vector<openvdb::Vec3I> tris;
+    tris.reserve(faces.size());
+    std::transform(faces.begin(), faces.end(), std::back_inserter(tris), face_to_openvdb);
+
+    // for (const auto& vert : verts){
+    //     aabb.expand_to_include(Vector(vert.x(), vert.y(), vert.z()));
+    // }
+    
+
+    float voxelsize = 1.0f;
+    //auto bounds = world_space_to_bounds(aabb.lower_left(), aabb.upper_right(), voxelsize);
+    float hw = 3.0f; // narrow band halfwidth in voxels
+
+    auto transform = openvdb::math::Transform::createLinearTransform(voxelsize);
+    auto grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
+        *transform, points, tris, hw
+    );
+
+    openvdb::Vec3d large_val(99999999, 999999999, 999999999);
+
+    auto sample_grid = [&grid](const openvdb::Vec3d& p){
+        return openvdb::tools::BoxSampler::sample(
+            grid->tree(), grid->worldToIndex(p)
+        );
+    };
+
+    REQUIRE(sample_grid(large_val) == hw * voxelsize);
+    REQUIRE(abs(sample_grid(points[0])) < hw * voxelsize);
+    
+
 
 
 }
