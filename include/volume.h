@@ -170,7 +170,7 @@ class Volume : public VolumeBase
       for( size_t i=1;i<=(size_t)gradParams.nbTerms();i++ )
       {
          double coeff = gradParams.coefficient( (int)i );
-	 if(isnan(coeff)){ std::cout << "Volume grad NAN " << i << "   dx " << dx.X() << " " << dx.Y() << " " << dx.Z() << std::endl; }
+	 if(std::isnan(coeff)){ std::cout << "Volume grad NAN " << i << "   dx " << dx.X() << " " << dx.Y() << " " << dx.Z() << std::endl; }
          valueX += (eval( P + i*dx ) - eval( P - i*dx ) ) * coeff / gradParams.step_x();
          valueY += (eval( P + i*dy ) - eval( P - i*dy ) ) * coeff / gradParams.step_y();
          valueZ += (eval( P + i*dz ) - eval( P - i*dz ) ) * coeff / gradParams.step_z();

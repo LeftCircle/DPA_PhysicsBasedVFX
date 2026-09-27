@@ -65,6 +65,8 @@ add_subdirectory(
 # Physics Based Animation!
 # ------------------------------------------------------------
 
+set(PBA_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
 add_subdirectory(
     "${CMAKE_CURRENT_SOURCE_DIR}/third_party/DPA_PhysicsBasedAnimation"
     "${CMAKE_CURRENT_BINARY_DIR}/DPA_PhysicsBasedAnimation"
@@ -173,6 +175,10 @@ if(BUILD_TESTING)
 
     add_executable(pbvfx_tests
         ${TEST_SOURCES}
+    )
+
+      target_compile_definitions(pbvfx_tests PRIVATE
+        PBVFX_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
 
     target_link_libraries(pbvfx_tests

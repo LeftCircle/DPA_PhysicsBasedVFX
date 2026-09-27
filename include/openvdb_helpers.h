@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include <openvdb/openvdb.h>
 
 #include "field_interface.h"
@@ -11,6 +13,8 @@ using ocoord = openvdb::Coord;
 
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, const openvdb::FloatGrid::Ptr grid);
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, float voxel_size);
+
+openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width);
 
 template <typename T, typename Func, typename CondFunc>
 void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condition_func, openvdb::CoordBBox bounds){

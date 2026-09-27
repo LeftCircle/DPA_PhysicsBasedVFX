@@ -4,7 +4,7 @@
 
 #include "string_funcs.h"
 
-namespace lux{
+using namespace lux;
 
 #define RADTODEG(radians) ((radians) * 180.0f / 3.14159265358979)
 #define DEGTORAD(degrees) ((degrees * 3.14159265358979 / 180.0))
@@ -15,23 +15,23 @@ using vecsptr = std::shared_ptr<const std::vector<vspf>>;
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/MeshToVolume.h>
 
-openvdb::initialize();
+// openvdb::initialize();
 
-// Fill these from the OBJ parser. Face indices must refer to points,
-// and polygon faces must be triangulated.
-std::vector<openvdb::Vec3s> points;
-std::vector<openvdb::Vec3I> triangles;
+// // Fill these from the OBJ parser. Face indices must refer to points,
+// // and polygon faces must be triangulated.
+// std::vector<openvdb::Vec3s> points;
+// std::vector<openvdb::Vec3I> triangles;
 
-constexpr float voxelSize = 0.1f;
-constexpr float halfWidth = 3.0f; // narrow-band width, in voxels
+// constexpr float voxelSize = 0.1f;
+// constexpr float halfWidth = 3.0f; // narrow-band width, in voxels
 
-auto transform =
-    openvdb::math::Transform::createLinearTransform(voxelSize);
+// auto transform =
+//     openvdb::math::Transform::createLinearTransform(voxelSize);
 
-auto grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-    *transform, points, triangles, halfWidth);
+// auto grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
+//     *transform, points, triangles, halfWidth);
 
-grid->setGridClass(openvdb::GridClass::GRID_LEVEL_SET);
+// grid->setGridClass(openvdb::GridClass::GRID_LEVEL_SET);
 
 
 
@@ -113,4 +113,4 @@ void raymarch_things(const std::string& filename, float t){
     render_img.oiio_write_to(frame_filename);
 }
 
-} // end namespace lux
+//} // end namespace lux
