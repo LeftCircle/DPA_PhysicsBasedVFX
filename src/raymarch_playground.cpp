@@ -4,7 +4,12 @@
 
 #include "string_funcs.h"
 
-using namespace lux;
+#include <openvdb/openvdb.h>
+#include <openvdb/tools/MeshToVolume.h>
+
+#include "obj_reader.h"
+
+namespace lux{
 
 #define RADTODEG(radians) ((radians) * 180.0f / 3.14159265358979)
 #define DEGTORAD(degrees) ((degrees * 3.14159265358979 / 180.0))
@@ -12,32 +17,11 @@ using namespace lux;
 using vecsptr = std::shared_ptr<const std::vector<vspf>>;
 
 
-#include <openvdb/openvdb.h>
-#include <openvdb/tools/MeshToVolume.h>
-
-// openvdb::initialize();
-
-// // Fill these from the OBJ parser. Face indices must refer to points,
-// // and polygon faces must be triangulated.
-// std::vector<openvdb::Vec3s> points;
-// std::vector<openvdb::Vec3I> triangles;
-
-// constexpr float voxelSize = 0.1f;
-// constexpr float halfWidth = 3.0f; // narrow-band width, in voxels
-
-// auto transform =
-//     openvdb::math::Transform::createLinearTransform(voxelSize);
-
-// auto grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
-//     *transform, points, triangles, halfWidth);
-
-// grid->setGridClass(openvdb::GridClass::GRID_LEVEL_SET);
-
 
 
 void raymarch_things(const std::string& filename, float t){
     float cam_distance = 10;
-    float scene_width = 5;
+    //float scene_width = 5;
     //float near = cam_distance - scene_width / 2.0;
     //float far = near + scene_width;
     float near = 5;
@@ -102,15 +86,29 @@ void raymarch_things(const std::string& filename, float t){
 
 
 
+    std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
+    ObjReader<Vector> reader(obj_filepath);
+    printf("n tris = %g", (float)reader.get_faces().size());
+    std::cout << obj_filepath<< std::endl;
+    voxel_size = 0.01;
+    float half_width = 3;
+    auto bunny = obj_mesh_to_grid_field(obj_filepath, voxel_size, half_width);
+    bunny = scale_fixed(bunny, {15, 15, 15});
+    //bunny = bunny * make_constant(100.0f);
+    bunny = -mask(bunny);
+    auto col_bunny = make_constant(comfy_colors::rose);
+    
+
     ImageData render_img(1920 / 4, 1080 / 4, 4);
     Vector eye = Vector(0, 0, cam_distance);
     Vector view = Vector(0, 0, -1);
     eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
-    rm.ray_march_image(cam, render_img, torus, col);
+    rm.ray_march_image(cam, render_img, bunny, col_bunny);
     std::string frame_filename = filename;
     render_img.oiio_write_to(frame_filename);
 }
 
+}
 //} // end namespace lux

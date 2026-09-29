@@ -207,7 +207,6 @@ TEST_CASE("Test create level set from obj"){
     std::string obj_filepath = std::string(PBVFX_SOURCE_DIR) + "/third_party/starter/models/ajax/smallajax.obj";
 
     ObjReader<openvdb::Vec3s> objreader(obj_filepath);
-    pba::AABB<Vector> aabb;
     const auto& verts = objreader.get_verts();
     const auto& faces = objreader.get_faces();
     
@@ -225,5 +224,6 @@ TEST_CASE("Test create level set from obj"){
 
     REQUIRE(sample_grid(large_val) == hw * voxelsize);
     REQUIRE(abs(sample_grid(verts[0])) < hw * voxelsize);
+    REQUIRE(sample_grid(grid->worldToIndex({0, 0, 0})) == - hw * voxelsize);
 
 }

@@ -15,6 +15,8 @@ openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, c
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, float voxel_size);
 
 openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width);
+VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width);
+
 
 template <typename T, typename Func, typename CondFunc>
 void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condition_func, openvdb::CoordBBox bounds){
@@ -25,14 +27,10 @@ void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condit
     for (int z = bounds.min().z(); z <= bounds.max().z(); z++){
         for (int y = bounds.min().y(); y <= bounds.max().y(); y++){
             for (int x = bounds.min().x(); x <= bounds.max().x(); x++){
-                //Vector p = Vector(x, y, z) * voxel_size;
                 auto pvdb = grid->indexToWorld(ocoord(x, y, z));
                 Vector p = Vector(pvdb.x(), pvdb.y(), pvdb.z());
-                //printf("p is %g %g %g  pvdb is %g %g %g\n", p.X(), p.Y(), p.Z(), pvdb.x(), pvdb.y(), pvdb.z());
                 auto val = func(p);
                 if (!condition_func(val)) continue;
-                //printf("AHHHHH");
-                // printf("Val is %g\n", val);
                 accessor.setValue(ocoord(x, y, z), GridTypes<T>::to_grid(val));
             }
         }

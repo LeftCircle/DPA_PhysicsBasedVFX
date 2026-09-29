@@ -22,6 +22,8 @@ using isf_col = std::tuple<vspf, vspc>;
 
 void raymarch_things(const std::string& filename, float t = 0);
 
+
+
 class comfy_colors{
 public:
     inline static const Color rose = Color(243, 172, 202, 0) / 256.0;

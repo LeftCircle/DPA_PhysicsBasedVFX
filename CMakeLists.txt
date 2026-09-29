@@ -177,7 +177,7 @@ if(BUILD_TESTING)
         ${TEST_SOURCES}
     )
 
-      target_compile_definitions(pbvfx_tests PRIVATE
+    target_compile_definitions(pbvfx_tests PRIVATE
         PBVFX_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
     )
 

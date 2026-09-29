@@ -30,7 +30,6 @@ openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, c
 
 openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width){
     ObjReader<openvdb::Vec3s> objreader(obj_path);
-    pba::AABB<Vector> aabb;
     const auto& verts = objreader.get_verts();
     const auto& faces = objreader.get_faces();
     std::vector<openvdb::Vec3s> points;
@@ -44,12 +43,22 @@ openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float vox
     tris.reserve(faces.size());
     std::transform(faces.begin(), faces.end(), std::back_inserter(tris), face_to_openvdb);
 
-    auto bounds = world_space_to_bounds(aabb.lower_left(), aabb.upper_right(), voxel_size);
+    openvdb::Vec3s center;
+    for (const auto& vert : verts){
+        center += vert;
+    }
+    center = center / (double)verts.size();
 
     auto transform = openvdb::math::Transform::createLinearTransform(voxel_size);
-    return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
+    auto grid = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(
         *transform, points, tris, half_width
     );
+    grid->transform().postTranslate(-center);
+    return grid;
+}
+
+VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width){
+    return make_grid_field<float>(obj_mesh_to_level_set_f(obj_path, voxel_size, half_width));
 }
     
 
