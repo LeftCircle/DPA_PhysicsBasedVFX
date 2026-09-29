@@ -27,12 +27,17 @@ Color RayMarcher::ray_march_single_pixel(
         float den = density->eval(X);
         float ds = distribution(generator);
         if( den < 0.0 ){
+            float shadow_eval = 1.0;
             if (_kappa == 0.0){
                 L += color->eval(X);
                 T = 0;
             } else {
+                Color clights(0, 0, 0, 0);
+                for (int i = 0; i < _shadow_maps.size(); i++){
+                    clights += _light_colors[i] * _shadow_maps[i]->eval(X);
+                }
                 float dT = std::exp( ds * _kappa * den ); // dens is negative here, so remove - mult;
-                L += color->eval(X) * (1-dT) * T * _one_over_kappa;
+                L += color->eval(X) * (1-dT) * T * _one_over_kappa * clights;
                 T *= dT;
             }
         }
@@ -72,5 +77,4 @@ void RayMarcher::ray_march_image(
             img.set_pixel_values(i, j, p);
         }
     }
-   
 }

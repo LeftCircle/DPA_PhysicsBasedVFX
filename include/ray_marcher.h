@@ -4,6 +4,7 @@
 #include "volume.h"
 #include "Color.h"
 #include "Camera.h"
+#include "deep_shadow_map.h"
 
 namespace lux{
 
@@ -38,6 +39,10 @@ public:
     void set_max_ds(float max) { _max_ds = max; }
     void set_exticntion_coefficient(float kappa) { _kappa = kappa; _one_over_kappa = 1.0 / kappa; }
 
+    void add_shadow_map(vspf shadow_map, Color light_col) { 
+        _shadow_maps.push_back(shadow_map);
+        _light_colors.push_back(light_col);
+    }
 
 private:
     //ImageData _img_data;
@@ -49,6 +54,9 @@ private:
     float _one_over_kappa = 1.0;
     float _min_ds;
     float _max_ds;
+
+    std::vector<vspf> _shadow_maps;
+    std::vector<Color> _light_colors;
 };
 
 }

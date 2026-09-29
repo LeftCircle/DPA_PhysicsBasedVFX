@@ -27,6 +27,12 @@ openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, c
     return world_space_to_bounds(llc, urc, voxel_size);
 }
 
+openvdb::FloatGrid::Ptr create_float_grid(float voxel_size, float default_val){
+    auto grid = openvdb::FloatGrid::create(default_val);
+    grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+    return grid;
+}
 
 openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width){
     ObjReader<openvdb::Vec3s> objreader(obj_path);

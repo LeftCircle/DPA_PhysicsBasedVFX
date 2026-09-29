@@ -227,3 +227,16 @@ TEST_CASE("Test create level set from obj"){
     REQUIRE(sample_grid(grid->worldToIndex({0, 0, 0})) == - hw * voxelsize);
 
 }
+
+TEST_CASE("Test boundbox iterator"){
+    coordbbox bbox(ocoord(0, 0, 0), ocoord(3, 3, 3));
+    auto iter = bbox.beginXYZ();
+    while (iter != bbox.endXYZ()){
+        const auto& coord = *iter; 
+        std::cout << coord.x() << ", "
+              << coord.y() << ", "
+              << coord.z() << '\n';
+        ++iter;
+    }
+    REQUIRE(true);
+}

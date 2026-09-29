@@ -30,6 +30,13 @@ class Vector
       xyz[1] = v.xyz[1];
       xyz[2] = v.xyz[2]; 
    }
+
+   template <typename OtherVec>
+   Vector(const OtherVec& other){
+    xyz[0] = other.x();
+    xyz[1] = other.y();
+    xyz[2] = other.z();
+   }
    
    Vector(const double a, const double b, const double c)
    {

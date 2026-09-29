@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-
+#include <limits>
 #include <openvdb/openvdb.h>
 
 #include "field_interface.h"
@@ -10,9 +10,11 @@
 namespace lux{
 
 using ocoord = openvdb::Coord;
+using coordbbox = openvdb::CoordBBox;
 
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, const openvdb::FloatGrid::Ptr grid);
 openvdb::CoordBBox world_space_to_bounds(const Vector& llc, const Vector& urc, float voxel_size);
+openvdb::FloatGrid::Ptr create_float_grid(float voxel_size, float default_val = std::numeric_limits<float>::max());
 
 openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width);
 VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width);
