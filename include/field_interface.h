@@ -163,7 +163,7 @@ struct GridTypes<Color>{
     }
 
     static openvdb::Vec3s to_grid(const Color& col) noexcept {
-        return {col.red(), col.green(), col.blue()};
+        return {(float)col.red(), (float)col.green(), (float)col.blue()};
     }
 };
 

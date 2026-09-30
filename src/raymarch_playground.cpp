@@ -33,70 +33,92 @@ void raymarch_things(const std::string& filename, float t){
     rm.set_max_ds(max_ds);
     rm.set_snear(near);
     rm.set_sfar(far);
-    rm.set_exticntion_coefficient(3.0);
+    float kappa = 3.0;
+    rm.set_exticntion_coefficient(kappa);
     rm.set_Tmin(0.001);
     Camera cam;
 
-    float radius = 1.5;
-    //auto sphere = isf_sphere(Vector(), radius);
-    auto torus = isf_torus(Vector(), radius, radius / 3.0, Vector(0, 0, -1));
-    auto torus_b = isf_torus(Vector(), radius, radius / 3.0, Vector(0, 1, 0));
-    auto torus_c = isf_torus(Vector(), radius, radius / 3.0, Vector(1, 0, 0));
+    // float radius = 1.5;
+    // //auto sphere = isf_sphere(Vector(), radius);
+    // auto torus = isf_torus(Vector(), radius, radius / 3.0, Vector(0, 0, -1));
+    // auto torus_b = isf_torus(Vector(), radius, radius / 3.0, Vector(0, 1, 0));
+    // auto torus_c = isf_torus(Vector(), radius, radius / 3.0, Vector(1, 0, 0));
 
 
-    auto col = make_constant(Color(0, 0, 0, 0));
-    auto torus_col = make_constant(comfy_colors::green_mountain);
+    // auto col = make_constant(Color(0, 0, 0, 0));
+    // auto torus_col = make_constant(comfy_colors::green_mountain);
     
     
-    float voxel_size = 0.1;
-    float default_val = voxel_size;
-    auto grid = openvdb::FloatGrid::create(default_val);
-    grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
-    grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
-    auto bounds = world_space_to_bounds(Vector(-radius, -radius, -radius) * 1.5, Vector(radius, radius, radius) * 1.5, grid);
-    printf("bounds llc = %d, %d, %d", bounds.getStart().x(), bounds.getStart().y(), bounds.getStart().z());
+    // float voxel_size = 0.1;
+    // float default_val = voxel_size;
+    // auto grid = openvdb::FloatGrid::create(default_val);
+    // grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    // grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+    // auto bounds = world_space_to_bounds(Vector(-radius, -radius, -radius) * 1.5, Vector(radius, radius, radius) * 1.5, grid);
+    // printf("bounds llc = %d, %d, %d", bounds.getStart().x(), bounds.getStart().y(), bounds.getStart().z());
     
-    stamp_grid<float>(grid, [torus](const Vector& p){return torus->eval(p); }, [](float val){ return val < 0; }, bounds);
-    torus = make_grid_field<float>(grid);
+    // stamp_grid<float>(grid, [torus](const Vector& p){return torus->eval(p); }, [](float val){ return val < 0; }, bounds);
+    // torus = make_grid_field<float>(grid);
     
     
-    // auto col_grid = openvdb::Vec3SGrid::create();
-    // col_grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
-    // col_grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
-    // stamp_grid<Color>(col_grid, [col](const Vector& p){ return col->eval(p); }, [](const Color& val){return true; }, bounds);
+    // // auto col_grid = openvdb::Vec3SGrid::create();
+    // // col_grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    // // col_grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+    // // stamp_grid<Color>(col_grid, [col](const Vector& p){ return col->eval(p); }, [](const Color& val){return true; }, bounds);
     
-    //col = make_grid_field<Color>(col_grid);
+    // //col = make_grid_field<Color>(col_grid);
 
-    auto gb = openvdb::FloatGrid::create(default_val);
-    gb->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
-    gb->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
-    stamp_grid<float>(gb, [torus_b](const Vector& p){return torus_b->eval(p); }, [](float val){ return val < 0; }, bounds);
-    torus_b = make_grid_field<float>(gb);
-    col = torus_col * mask(torus) + col * mask(-torus);
-    auto col_b = make_constant(comfy_colors::purpple_eastside);
-    col = col_b * mask(torus_b) + col * mask(-torus_b);
-    torus = union_fields(torus, torus_b);
+    // auto gb = openvdb::FloatGrid::create(default_val);
+    // gb->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    // gb->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+    // stamp_grid<float>(gb, [torus_b](const Vector& p){return torus_b->eval(p); }, [](float val){ return val < 0; }, bounds);
+    // torus_b = make_grid_field<float>(gb);
+    // col = torus_col * mask(torus) + col * mask(-torus);
+    // auto col_b = make_constant(comfy_colors::purpple_eastside);
+    // col = col_b * mask(torus_b) + col * mask(-torus_b);
+    // torus = union_fields(torus, torus_b);
     
     
-    //torus = make_grid_field<float>(torus);
+    // //torus = make_grid_field<float>(torus);
 
-    torus = union_fields(torus, torus_c);
-    auto col_c = make_constant(comfy_colors::rose);
-    col = col_c * mask(torus_c) + col * mask(-torus_c);
+    // torus = union_fields(torus, torus_c);
+    // auto col_c = make_constant(comfy_colors::rose);
+    // col = col_c * mask(torus_c) + col * mask(-torus_c);
 
 
 
-    std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
-    ObjReader<Vector> reader(obj_filepath);
-    printf("n tris = %g", (float)reader.get_faces().size());
-    std::cout << obj_filepath<< std::endl;
-    voxel_size = 0.01;
-    float half_width = 3;
-    auto bunny = obj_mesh_to_grid_field(obj_filepath, voxel_size, half_width);
-    bunny = scale_fixed(bunny, {15, 15, 15});
-    //bunny = bunny * make_constant(100.0f);
-    bunny = -mask(bunny);
-    auto col_bunny = make_constant(comfy_colors::rose);
+    // std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
+    // ObjReader<Vector> reader(obj_filepath);
+    // printf("n tris = %g", (float)reader.get_faces().size());
+    // std::cout << obj_filepath<< std::endl;
+    // voxel_size = 0.01;
+    // float half_width = 3;
+    // auto bunny = obj_mesh_to_grid_field(obj_filepath, voxel_size, half_width);
+    // bunny = scale_fixed(bunny, {15, 15, 15});
+    // //bunny = bunny * make_constant(100.0f);
+    // bunny = -mask(bunny);
+    // auto col_bunny = make_constant(comfy_colors::rose);
+
+
+
+    auto sphere = isf_sphere({}, 2);
+    auto const_col = make_constant(Color(1, 1, 1, 0));
+
+
+    // TO DO -> better to add colors to the rm and have it create the shadow map (maybe)
+    PointLight key(Color(1.0, 0.1, 0.1, 0), Vector(0, 1, 0));
+    PointLight fill(Color(0.1, 1.0, 0.1, 0), Vector(1, -1, 0));
+    PointLight rim(Color(0.1, 0.1, 1.0, 0), Vector(-1, -1, 0));
+
+    float sm_voxelsize = 0.001;
+    float sm_kappa = 10.0f;
+    auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, sm_voxelsize);
+    auto shaddow_map = make_deep_shadow_map(sphere, sm_voxelsize, bounds, key, 0.01, sm_kappa);
+    auto sm2 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, fill, 0.01, sm_kappa);
+    auto sm3 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, rim, 0.01, sm_kappa);
+    rm.add_shadow_map(shaddow_map, key.color);
+    rm.add_shadow_map(sm2, fill.color);
+    rm.add_shadow_map(sm3, rim.color);
     
 
     ImageData render_img(1920 / 4, 1080 / 4, 4);
@@ -105,7 +127,7 @@ void raymarch_things(const std::string& filename, float t){
     eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
-    rm.ray_march_image(cam, render_img, bunny, col_bunny);
+    rm.ray_march_image(cam, render_img, sphere, const_col);
     std::string frame_filename = filename;
     render_img.oiio_write_to(frame_filename);
 }

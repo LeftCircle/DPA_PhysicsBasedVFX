@@ -10,8 +10,8 @@ namespace lux{
 vspf make_deep_shadow_map(
     vspf density_field,
     float voxel_size,
-    coordbbox bounds,
-    PointLight light,
+    const coordbbox& bounds,
+    const PointLight& light,
     float step_size,
     float kappa
 );
@@ -24,7 +24,7 @@ float accumulate_over_steps(Vector start, Vector end, float step_size, AccumFunc
     float s = 0;
     while (s < smax){
         auto pos = start + s * dir;
-        initial += func(p);
+        initial += func(pos);
         s += step_size;
     }
     return initial;

@@ -38,6 +38,7 @@ Color RayMarcher::ray_march_single_pixel(
                 }
                 float dT = std::exp( ds * _kappa * den ); // dens is negative here, so remove - mult;
                 L += color->eval(X) * (1-dT) * T * _one_over_kappa * clights;
+                //L += (1-dT) * T * _one_over_kappa * clights;
                 T *= dT;
             }
         }
