@@ -87,19 +87,26 @@ void raymarch_things(const std::string& filename, float t){
 
 
 
-    // std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
-    // ObjReader<Vector> reader(obj_filepath);
-    // printf("n tris = %g", (float)reader.get_faces().size());
-    // std::cout << obj_filepath<< std::endl;
-    // voxel_size = 0.01;
-    // float half_width = 3;
-    // auto bunny = obj_mesh_to_grid_field(obj_filepath, voxel_size, half_width);
-    // bunny = scale_fixed(bunny, {15, 15, 15});
-    // //bunny = bunny * make_constant(100.0f);
-    // bunny = -mask(bunny);
-    // auto col_bunny = make_constant(comfy_colors::rose);
+    std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
+    ObjReader<Vector> reader(obj_filepath);
+    printf("n tris = %g", (float)reader.get_faces().size());
+    std::cout << obj_filepath<< std::endl;
+    float voxel_size = 0.01;
+    float half_width = 3;
+    //auto bunny = obj_mesh_to_grid_field(obj_filepath, voxel_size, half_width);
+    auto bunny2 = obj_mesh_to_level_set_f(obj_filepath, voxel_size, half_width);
+    bunny2->transform().postScale(30);
+    auto bunny_bounds = bunny2->evalActiveVoxelBoundingBox();
+    auto bbs = bunny_bounds.getStart();
+    auto bbe = bunny_bounds.getEnd();
+    printf("bunny_bounds llc %i %i %i urc %i %i %i\n", bbs.x(), bbs.y(), bbs.z(), bbe.x(), bbs.y(), bbs.z());
+    auto bunny = make_grid_field<float>(bunny2);
+    
+    
+    //bunny = scale_fixed(bunny, {20, 20, 20});
 
-
+    //bunny = bunny * make_constant(100.0f);
+    bunny = -mask(bunny);
 
     auto sphere = isf_sphere({}, 2);
     //sphere = sphere * make_constant(3.0f);
@@ -107,29 +114,35 @@ void raymarch_things(const std::string& filename, float t){
 
 
     // TO DO -> better to add colors to the rm and have it create the shadow map (maybe)
-    PointLight key(Color(1.0, 0.1, 0.1, 0), Vector(0, 3, 0));
-    PointLight fill(Color(0.1, 1.0, 0.1, 0), Vector(3, -3, 0));
-    PointLight rim(Color(0.1, 0.1, 1.0, 0), Vector(-3, -3, 0));
+    PointLight key(Color(1.0, 0.00, 0.00, 0), Vector(0, 3, 3));
+    PointLight fill(Color(0.00, 1.0, 0.00, 0), Vector(0, -3, 0));
+    PointLight rim(Color(0.00, 0.00, 1.0, 0), Vector(0, 0, -3));
 
-    float sm_voxelsize = 0.1;
-    float sm_kappa = 0.75f;
+    float sm_voxelsize = bunny2->transform().voxelSize().x();
+    printf("shadow map voxelsize = %g\n", sm_voxelsize);
+    float sm_kappa = 0.5;
     float sm_stepsize = 0.01;
     auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, sm_voxelsize);
-    auto shaddow_map = make_deep_shadow_map(sphere, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
-    auto sm2 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
-    auto sm3 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
+    bounds = world_space_to_bounds(Vector(bunny2->indexToWorld(bunny_bounds.getStart())), Vector(bunny2->indexToWorld(bunny_bounds.getEnd())), sm_voxelsize);
+
+    
+    
+    auto shaddow_map = make_deep_shadow_map(bunny, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
+    auto sm2 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
+    auto sm3 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
     rm.add_shadow_map(shaddow_map, key.color);
     rm.add_shadow_map(sm2, fill.color);
     rm.add_shadow_map(sm3, rim.color);
     
 
+    //rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
     ImageData render_img(1920 / 4, 1080 / 4, 4);
     Vector eye = Vector(0, 0, cam_distance);
     Vector view = Vector(0, 0, -1);
     eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
-    rm.ray_march_image(cam, render_img, sphere, const_col);
+    rm.ray_march_image(cam, render_img, bunny, const_col);
     std::string frame_filename = filename;
     render_img.oiio_write_to(frame_filename);
 }

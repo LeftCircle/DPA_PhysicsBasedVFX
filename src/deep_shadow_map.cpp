@@ -15,12 +15,13 @@ vspf make_deep_shadow_map(
     float kappa
 ){
     // create the floatgrid based on the inputs
-    auto grid = create_float_grid(voxel_size, 0.0f);
+    auto grid = create_float_grid(voxel_size, -10000.0f);
 
     // loop over each bound, calculate density to the point light. 
     //auto end_world = grid->worldToIndex(light.position);
     auto eval_func = [density_field, step_size, kappa](const Vector& p){ 
-        return density_field->eval(p) * step_size * kappa;
+        auto val = density_field->eval(p) * step_size * kappa;
+        return val < 0 ? val : 0;
     };
     auto accessor = grid->getAccessor();
     int steps = 0;
