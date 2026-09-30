@@ -102,20 +102,22 @@ void raymarch_things(const std::string& filename, float t){
 
 
     auto sphere = isf_sphere({}, 2);
+    //sphere = sphere * make_constant(3.0f);
     auto const_col = make_constant(Color(1, 1, 1, 0));
 
 
     // TO DO -> better to add colors to the rm and have it create the shadow map (maybe)
-    PointLight key(Color(1.0, 0.1, 0.1, 0), Vector(0, 1, 0));
-    PointLight fill(Color(0.1, 1.0, 0.1, 0), Vector(1, -1, 0));
-    PointLight rim(Color(0.1, 0.1, 1.0, 0), Vector(-1, -1, 0));
+    PointLight key(Color(1.0, 0.1, 0.1, 0), Vector(0, 3, 0));
+    PointLight fill(Color(0.1, 1.0, 0.1, 0), Vector(3, -3, 0));
+    PointLight rim(Color(0.1, 0.1, 1.0, 0), Vector(-3, -3, 0));
 
-    float sm_voxelsize = 0.001;
-    float sm_kappa = 10.0f;
+    float sm_voxelsize = 0.1;
+    float sm_kappa = 0.75f;
+    float sm_stepsize = 0.01;
     auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, sm_voxelsize);
-    auto shaddow_map = make_deep_shadow_map(sphere, sm_voxelsize, bounds, key, 0.01, sm_kappa);
-    auto sm2 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, fill, 0.01, sm_kappa);
-    auto sm3 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, rim, 0.01, sm_kappa);
+    auto shaddow_map = make_deep_shadow_map(sphere, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
+    auto sm2 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
+    auto sm3 = make_deep_shadow_map(sphere, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
     rm.add_shadow_map(shaddow_map, key.color);
     rm.add_shadow_map(sm2, fill.color);
     rm.add_shadow_map(sm3, rim.color);
