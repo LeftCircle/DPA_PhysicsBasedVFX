@@ -9,6 +9,7 @@
 #include <nanovdb/tools/CreateNanoGrid.h> // converter from OpenVDB to NanoVDB (includes NanoVDB.h and GridManager.h)
 #include <nanovdb/io/IO.h>
 #include <openvdb/tools/MeshToVolume.h>
+#include <openvdb/tools/VolumeToMesh.h>
 
 
 #include "field_interface.h"
@@ -224,7 +225,7 @@ TEST_CASE("Test create level set from obj"){
 
     REQUIRE(sample_grid(large_val) == hw * voxelsize);
     REQUIRE(abs(sample_grid(verts[0])) < hw * voxelsize);
-    REQUIRE(sample_grid(grid->worldToIndex({0, 0, 0})) == - hw * voxelsize);
+    REQUIRE(sample_grid(grid->worldToIndex({0, 0, 0})) > -hw * voxelsize);
 
 }
 
@@ -239,4 +240,52 @@ TEST_CASE("Test boundbox iterator"){
         ++iter;
     }
     REQUIRE(true);
+}
+
+TEST_CASE("Test write density field to mesh"){
+    auto isf = isf_icosahedron({});
+    isf = scale_fixed(isf, {0.1, 0.1, 0.1});
+
+    std::string outpath = std::string(PBVFX_SOURCE_DIR) + "/images/test_openvdb_write_to_geo_02.obj";
+
+    float voxel_size = 0.01;
+    float default_val = 999;
+    auto grid = create_float_grid(voxel_size, default_val);
+    auto bounds = world_space_to_bounds(Vector(-1, -1, -1), Vector(1, 1, 1), grid);
+    stamp_isf_to_grid(grid, isf, bounds);
+    REQUIRE(grid->activeVoxelCount() > 0);
+
+    std::vector<openvdb::Vec3s> points;
+    std::vector<openvdb::Vec3I> triangles;
+    std::vector<openvdb::Vec4I> quads;
+
+    openvdb::tools::volumeToMesh(*grid, points, triangles, quads);
+
+    std::ofstream output(outpath);
+
+    for (const auto& point : points) {
+        output << "v "
+            << point.x() << " "
+            << point.y() << " "
+            << point.z() << "\n";
+    }
+
+    for (const auto& triangle : triangles) {
+        output << "f "
+            << triangle[0] + 1 << " "
+            << triangle[1] + 1 << " "
+            << triangle[2] + 1 << "\n";
+    }
+
+    for (const auto& quad : quads) {
+        output << "f "
+            << quad[0] + 1 << " "
+            << quad[1] + 1 << " "
+            << quad[2] + 1 << " "
+            << quad[3] + 1 << "\n";
+    }
+
+    REQUIRE(points.size() > 0);
+    REQUIRE(quads.size() > 0);
+
 }

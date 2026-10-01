@@ -68,5 +68,17 @@ VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, flo
 }
     
 
+vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value){
+    auto g = create_float_grid(voxel_size, default_value);
+    stamp_isf_to_grid(g, a, bounds);
+    return make_grid_field<float>(g);
+}
+
+void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds){
+    auto func = [a](const Vector& p){ return a->eval(p); };
+    auto cond = [](const float val){ return val <= 0; };
+    stamp_grid<float>(grid, func, cond, bounds);
+}
+
 
 } // end namespace lux

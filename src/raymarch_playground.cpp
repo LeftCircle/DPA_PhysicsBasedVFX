@@ -91,7 +91,7 @@ void raymarch_things(const std::string& filename, float t){
     ObjReader<Vector> reader(obj_filepath);
     printf("n tris = %g", (float)reader.get_faces().size());
     std::cout << obj_filepath<< std::endl;
-    float voxel_size = 0.01;
+    float voxel_size = 0.001;
     float half_width = 3;
     //auto bunny = obj_mesh_to_grid_field(obj_filepath, voxel_size, half_width);
     auto bunny2 = obj_mesh_to_level_set_f(obj_filepath, voxel_size, half_width);
@@ -109,6 +109,8 @@ void raymarch_things(const std::string& filename, float t){
     bunny = -mask(bunny);
 
     auto sphere = isf_sphere({}, 2);
+    auto sphere_bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, 0.01);
+    auto grid_sphere = stamp_isf_to_grid(sphere, sphere_bounds, 0.01, 0.0);
     //sphere = sphere * make_constant(3.0f);
     auto const_col = make_constant(Color(1, 1, 1, 0));
 
@@ -124,18 +126,18 @@ void raymarch_things(const std::string& filename, float t){
     float sm_stepsize = 0.01;
     auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, sm_voxelsize);
     bounds = world_space_to_bounds(Vector(bunny2->indexToWorld(bunny_bounds.getStart())), Vector(bunny2->indexToWorld(bunny_bounds.getEnd())), sm_voxelsize);
-
     
     
-    auto shaddow_map = make_deep_shadow_map(bunny, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
+    auto shaddow_map = make_deep_shadow_map_parallel(bunny, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
     auto sm2 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
-    auto sm3 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
+    //auto sm3 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
     rm.add_shadow_map(shaddow_map, key.color);
     rm.add_shadow_map(sm2, fill.color);
-    rm.add_shadow_map(sm3, rim.color);
+    // rm.add_shadow_map(sm3, rim.color);
     
 
-    //rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
+
+    // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
     ImageData render_img(1920 / 4, 1080 / 4, 4);
     Vector eye = Vector(0, 0, cam_distance);
     Vector view = Vector(0, 0, -1);

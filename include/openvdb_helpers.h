@@ -3,6 +3,7 @@
 #include <string>
 #include <limits>
 #include <openvdb/openvdb.h>
+#include <openvdb/tools/ValueTransformer.h>
 
 #include "field_interface.h"
 #include "Vector.h"
@@ -20,8 +21,13 @@ openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float vox
 VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width);
 
 
+void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds);
+vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value);
+
+
+
 template <typename T, typename Func, typename CondFunc>
-void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condition_func, openvdb::CoordBBox bounds){
+void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condition_func, const openvdb::CoordBBox& bounds){
     auto voxel_size = (float)grid->transform().voxelSize().x();
     printf("Voxel size is %g \n", voxel_size);
     auto accessor = grid->getAccessor();
@@ -43,9 +49,7 @@ void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condit
 
 
 
-
-
-}
+} // end namespace lux
 
 
 

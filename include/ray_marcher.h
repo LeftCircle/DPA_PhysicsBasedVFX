@@ -10,13 +10,6 @@ namespace lux{
 
 class RayMarcher{
 public:
-
-    // RayMarcher(int w, int h) { set_dimensions(w, h); }
-    //void set_dimensions(int w, int h);
-    
-    //int get_img_width() { return _img_data.get_width(); };
-    //int get_img_height() { return _img_data.get_height(); };
-
     Color ray_march_single_pixel(
         const Vector& direction,
         const Vector& eye,
@@ -30,6 +23,14 @@ public:
         const VolumeSPtr<float>& density,
         const VolumeSPtr<Color>& color
     ) const;
+
+    void ray_march_image(
+        Camera cam, 
+        ImageData& img_data,
+        const vspf& density,
+        const VSPtr<Color>& color,
+        const float other
+    );
 
     void set_snear(float snear) { _snear = snear; }
     void set_sfar(float sfar) { _sfar = sfar; }

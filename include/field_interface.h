@@ -167,7 +167,7 @@ struct GridTypes<Color>{
     }
 };
 
-
+// Note -> Grid _should_ be a ptr
 template<typename T>
 VSPtr<T> make_grid_field(const typename GridTypes<T>::GridType grid){
     auto eval_func = [grid](const Vector& p){

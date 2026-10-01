@@ -16,6 +16,15 @@ vspf make_deep_shadow_map(
     float kappa
 );
 
+vspf make_deep_shadow_map_parallel(
+    const vspf density_field,
+    float voxel_size,
+    const coordbbox& bounds,
+    const PointLight& light,
+    float step_size,
+    float kappa
+);
+
 
 template <typename AccumFunc>
 float accumulate_over_steps(Vector start, Vector end, float step_size, AccumFunc func, float initial = 0){
