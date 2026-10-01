@@ -1,4 +1,5 @@
 #include "ray_marcher.h"
+
 #include <iostream>
 #include <random>
 
@@ -9,18 +10,18 @@ using namespace lux;
 //     _img_data.set_dimensions(x, y, 4); // 4 for rgba
 // }
 
-
-
 Color RayMarcher::ray_march_single_pixel(
-        const Vector& direction,
-        const Vector& eye,
-        const VolumeSPtr<float>& density,
-        const VolumeSPtr<Color>& color
+    const Vector& start_pos,
+    const Vector& direction,
+    const Vector& eye,
+    const VolumeSPtr<float>& density,
+    const VolumeSPtr<Color>& color
 ) const {
     double T = 1; // Transmisivity
     Color L(0,0,0,0);
-    double s = _snear;
-    Vector X = eye + direction * s;
+    // set s to be the distance from eye to start_pos;
+    double s = (start_pos - eye).magnitude();
+    Vector X = start_pos;
     thread_local std::mt19937 generator(std::random_device{}());
     std::uniform_real_distribution<float> distribution(_min_ds, _max_ds);
     while( s < _sfar && T > _Tmin ) {
@@ -47,6 +48,46 @@ Color RayMarcher::ray_march_single_pixel(
     }
     L[3] = 1-T; // set the alpha channel to the opacity
     return L;
+}
+
+Color RayMarcher::ray_march_single_pixel(
+        const Vector& direction,
+        const Vector& eye,
+        const VolumeSPtr<float>& density,
+        const VolumeSPtr<Color>& color
+) const {
+    const Vector start_pos = eye + direction * _snear;
+    return ray_march_single_pixel(start_pos, direction, eye, density, color);
+    // double T = 1; // Transmisivity
+    // Color L(0,0,0,0);
+    // double s = _snear;
+    // Vector X = eye + direction * s;
+    // thread_local std::mt19937 generator(std::random_device{}());
+    // std::uniform_real_distribution<float> distribution(_min_ds, _max_ds);
+    // while( s < _sfar && T > _Tmin ) {
+    //     float den = density->eval(X);
+    //     float ds = distribution(generator);
+    //     if( den < 0.0 ){
+    //         float shadow_eval = 1.0;
+    //         if (_kappa == 0.0){
+    //             L += color->eval(X);
+    //             T = 0;
+    //         } else {
+    //             Color clights(0, 0, 0, 0);
+    //             for (int i = 0; i < _shadow_maps.size(); i++){
+    //                 clights += _light_colors[i] * _shadow_maps[i]->eval(X);
+    //             }
+    //             float dT = std::exp( ds * _kappa * den ); // dens is negative here, so remove - mult;
+    //             L += color->eval(X) * (1-dT) * T * _one_over_kappa * clights;
+    //             //L += (1-dT) * T * _one_over_kappa * clights;
+    //             T *= dT;
+    //         }
+    //     }
+    //     X += direction * ds;
+    //     s += ds;
+    // }
+    // L[3] = 1-T; // set the alpha channel to the opacity
+    // return L;
 }
 
 

@@ -20,7 +20,6 @@ openvdb::FloatGrid::Ptr create_float_grid(float voxel_size, float default_val = 
 openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width);
 VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width);
 
-
 void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds);
 vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value);
 

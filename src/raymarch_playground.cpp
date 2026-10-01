@@ -6,6 +6,7 @@
 
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/MeshToVolume.h>
+#include <openvdb/tools/VolumeToMesh.h>
 
 #include "obj_reader.h"
 
@@ -101,6 +102,25 @@ void raymarch_things(const std::string& filename, float t){
     auto bbe = bunny_bounds.getEnd();
     printf("bunny_bounds llc %i %i %i urc %i %i %i\n", bbs.x(), bbs.y(), bbs.z(), bbe.x(), bbs.y(), bbs.z());
     auto bunny = make_grid_field<float>(bunny2);
+
+    // Now let's try making a mesh from the bunny, then passing that into the raymarcher
+    //float voxel_size = 0.01;
+    float default_val = 999;
+    auto grid = create_float_grid(bunny2->transform().voxelSize().x(), default_val);
+    auto mesh_bounds = world_space_to_bounds(Vector(-3, -3, -3), Vector(3, 3, 3), grid);
+    stamp_isf_to_grid(grid, bunny, mesh_bounds);
+
+    std::vector<openvdb::Vec3s> points;
+    std::vector<openvdb::Vec3I> triangles;
+    std::vector<openvdb::Vec4I> quads;
+
+    openvdb::tools::volumeToMesh(*grid, points, triangles, quads);
+    // std::vector<Vector> rt_points;
+    // rt_points.reserve(points.size());
+    // std::transform(points.begin(), points.end(), std::back_inserter(rt_points),
+    //         [](const auto& p){ return Vector(p); }
+    // );
+
     
     
     //bunny = scale_fixed(bunny, {20, 20, 20});
@@ -108,10 +128,10 @@ void raymarch_things(const std::string& filename, float t){
     //bunny = bunny * make_constant(100.0f);
     bunny = -mask(bunny);
 
-    auto sphere = isf_sphere({}, 2);
-    auto sphere_bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, 0.01);
-    auto grid_sphere = stamp_isf_to_grid(sphere, sphere_bounds, 0.01, 0.0);
-    //sphere = sphere * make_constant(3.0f);
+    // auto sphere = isf_sphere({}, 2);
+    // auto sphere_bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, 0.01);
+    // auto grid_sphere = stamp_isf_to_grid(sphere, sphere_bounds, 0.01, 0.0);
+    // //sphere = sphere * make_constant(3.0f);
     auto const_col = make_constant(Color(1, 1, 1, 0));
 
 
@@ -128,25 +148,28 @@ void raymarch_things(const std::string& filename, float t){
     bounds = world_space_to_bounds(Vector(bunny2->indexToWorld(bunny_bounds.getStart())), Vector(bunny2->indexToWorld(bunny_bounds.getEnd())), sm_voxelsize);
     
     
-    auto shaddow_map = make_deep_shadow_map_parallel(bunny, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
-    auto sm2 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
-    //auto sm3 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
-    rm.add_shadow_map(shaddow_map, key.color);
-    rm.add_shadow_map(sm2, fill.color);
+    // auto shaddow_map = make_deep_shadow_map_parallel(bunny, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
+    // auto sm2 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
+    // //auto sm3 = make_deep_shadow_map(bunny, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
+    // rm.add_shadow_map(shaddow_map, key.color);
+    // rm.add_shadow_map(sm2, fill.color);
     // rm.add_shadow_map(sm3, rim.color);
     
 
-
-    // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
+    rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
     ImageData render_img(1920 / 4, 1080 / 4, 4);
     Vector eye = Vector(0, 0, cam_distance);
     Vector view = Vector(0, 0, -1);
     eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
     cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+    //rm.ray_march_image(cam, render_img, bunny, const_col, triangles, quads, rt_points);
     rm.ray_march_image(cam, render_img, bunny, const_col);
     std::string frame_filename = filename;
     render_img.oiio_write_to(frame_filename);
+    std::cout << "density at origin: "
+          << bunny->eval(Vector(0, 0.0, 0))
+          << '\n';
 }
 
 }

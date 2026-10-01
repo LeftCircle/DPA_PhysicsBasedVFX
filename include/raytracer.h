@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <optional>
+#include <utility>
+#include <type_traits>
+#include <limits>
 
 namespace lux
 {
@@ -22,38 +25,13 @@ auto dot(const Vec3& v1, const Vec3& v2){
 }
 
 
-// template<typename Vec, typename Vec3i>
-// Vec get_ray_triangle_intersection(
-//     Vec& start_pos,
-//     Vec& ray_dir,
-//     std::vector<Vec3i>& tris,
-//     std::vector<Vec>& verts,
-//     size_t idx
-// ){
-//     const Vec3i& tri = tris[idx]; 
-//     Vec e1 = verts[tri[1]] - verts[tri[0]];
-//     Vec e2 = verts[tri[2]] - verts[tri[1]];
-
-//     Vec3 norm = cross(e1, e2);
-//     auto d = dot(norm, verts[tri[0]] - start_pos) / dot(norm, ray_dir);
-//     vec3 e2xe1 = cross(e2, e1);
-//     auto num_part = start_pos - verts[tri[0]] + d * ray_dir;
-//     auto e2xe1_magsq = dot(e2xe1, e2xe1);
-//     auto u = dot(corss(e2, num_part), e2xe1) / e2xe1_magsq;
-//     auto v = -(dot(cross(e1, num_part), e2xe1) / e2xe1_magsq);
-//     return 
-// };
-
-
 template<typename Vec, typename Vec3i>
 std::optional<Vec> get_ray_triangle_intersection(
     const Vec& start_pos,
     const Vec& ray_dir,
-    const std::vector<Vec3i>& tris,
-    const std::vector<Vec>& verts,
-    std::size_t idx
+    const Vec3i& tri,
+    const std::vector<Vec>& verts
 ){
-    const Vec3i& tri = tris[idx];
     const Vec& v0 = verts[tri[0]];
     const Vec& v1 = verts[tri[1]];
     const Vec& v2 = verts[tri[2]];
@@ -95,7 +73,6 @@ std::optional<Vec> get_ray_triangle_intersection(
     if (u < 0 || v < 0 || u + v > 1) {
         return std::nullopt;
     }
-
     return hit;
 }
 
@@ -103,24 +80,17 @@ template<typename Vec, typename Vec4i>
 std::optional<Vec> get_ray_face_intersection(
     const Vec& start_pos,
     const Vec& ray_dir,
-    const std::vector<Vec4i>& faces,
-    const std::vector<Vec>& verts,
-    std::size_t idx
+    const Vec4i& face,
+    const std::vector<Vec>& verts
 ){
-    const Vec4i& face = faces[idx];
-    const Vec& v0 = verts[face[0]];
-    const Vec& v1 = verts[face[1]];
-    const Vec& v2 = verts[face[2]];
-    const Vec& v3 = verts[face[3]];
-
     // Check intersection with the first triangle (v0, v1, v2)
-    auto hit = get_ray_triangle_intersection(start_pos, ray_dir, std::vector<Vec4i>{Vec4i(0, 1, 2, 0)}, verts, 0);
+    auto hit = get_ray_triangle_intersection(start_pos, ray_dir, Vec4i(face[0], face[1], face[2], 0), verts);
     if (hit) {
         return hit;
     }
 
     // Check intersection with the second triangle (v0, v2, v3)
-    hit = get_ray_triangle_intersection(start_pos, ray_dir, std::vector<Vec4i>{Vec4i(0, 2, 3, 0)}, verts, 0);
+    hit = get_ray_triangle_intersection(start_pos, ray_dir, Vec4i(face[0], face[2], face[3], 0), verts);
     if (hit) {
         return hit;
     }
@@ -129,7 +99,44 @@ std::optional<Vec> get_ray_face_intersection(
 };
 
 
+template<typename Vec, typename Vec4i, typename Vec3i>
+std::optional<Vec> get_first_hit_position(
+    const Vec& start_pos,
+    const Vec& ray_dir,
+    const std::vector<Vec3i>& tris,
+    const std::vector<Vec4i>& faces,
+    const std::vector<Vec>& verts
+){
+    using Component = std::decay_t<decltype(std::declval<Vec>().x())>;
+    using HitRes = std::optional<Vec>;
+    auto tri_intersection = [&start_pos, &ray_dir, &verts](const Vec3i& tri){
+        return get_ray_triangle_intersection(start_pos, ray_dir, tri, verts);
+    };
+    auto face_intersection = [&start_pos, &ray_dir, &verts](const Vec4i& face){
+        return get_ray_face_intersection(start_pos, ray_dir, face, verts);
+    };
+    auto dist_sq = [&start_pos](const Vec& pos){
+        const Vec offset = pos - start_pos;
+        return dot(offset, offset);
+    };
+    auto comp_func = [&dist_sq](const HitRes& lhs, const HitRes& rhs){
+        if (lhs && !rhs) return true;
+        if (!lhs && rhs) return false;
+        if (!lhs && !rhs) return false;
+        return dist_sq(*lhs) < dist_sq(*rhs);
+    };
 
+    std::vector<HitRes> tri_hits(tris.size());
+    std::vector<HitRes> face_hits(faces.size());
+    std::transform(tris.begin(), tris.end(), tri_hits.begin(), tri_intersection);
+    std::transform(faces.begin(), faces.end(), face_hits.begin(), face_intersection);
+    tri_hits.insert(tri_hits.end(), face_hits.begin(), face_hits.end());
+    // Now return the min of the two
+    auto nearest = std::min_element(tri_hits.begin(), tri_hits.end(), comp_func);
+    if (nearest != tri_hits.end() && *nearest){
+        return *nearest;
+    }
+    return std::nullopt;
+}
 
-    
 } // namespace lux
