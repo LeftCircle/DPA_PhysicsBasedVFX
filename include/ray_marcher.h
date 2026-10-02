@@ -37,6 +37,14 @@ public:
         const VolumeSPtr<Color>& color
     ) const;
 
+    Color ray_march_single_pixel(
+        const Vector& direction,
+        const Vector& eye,
+        const VolumeSPtr<float>& density,
+        const VolumeSPtr<Color>& color,
+        const openvdb::FloatGrid::Ptr& level_set
+    ) const;
+
     void ray_march_image(
         Camera cam,
         ImageData& img_data,
@@ -63,24 +71,41 @@ public:
         const Vector& vhat = cam.up();
         const Vector& ncam = cam.view();
         const Vector& eye = cam.eye();
-
+        
+        std::printf("Starting to find ray intersections\n");
         // Now let's find all pixels that intersect
-        std::vector<RayHitInfo> raytrace_info;
-        for (int j = 0; j < img.get_height(); j++){
-            for (int i = 0; i < img.get_width(); i++){
-                float u = (2.0 * i * one_over_nx_pixelsf - 1.0) * htanfov;
-                float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
 
-                Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
-                auto hit = get_first_hit_position(eye, ray_dir, tris, faces, verts);
-                if (hit){
-                    raytrace_info.push_back(RayHitInfo(*hit, ray_dir, i, j));
-                }
+        const int width = img.get_width();
+        const int height = img.get_height();
+
+        std::vector<std::optional<RayHitInfo>> hits(static_cast<size_t>(width) * height);
+
+
+        //std::vector<RayHitInfo> raytrace_info;
+        #pragma omp parallel for schedule(static)
+        //for (int j = 0; j < img.get_height(); j++){
+        for (int pixel_index = 0; pixel_index < width * height; pixel_index++) {
+            const int i = pixel_index % width;
+            const int j = pixel_index / width;
+            //for (int i = 0; i < img.get_width(); i++){
+            float u = (2.0 * i * one_over_nx_pixelsf - 1.0) * htanfov;
+            float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
+
+            Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
+            auto hit = get_first_hit_position(eye, ray_dir, tris, faces, verts);
+            if (hit){
+                //raytrace_info.push_back(RayHitInfo(*hit, ray_dir, i, j));
+                hits[pixel_index].emplace(*hit, ray_dir, i, j);
             }
         }
+        hits.erase(std::remove_if(hits.begin(), hits.end(), [](const auto& hit){return !hit.has_value(); }), hits.end());
+
+        std::printf("Hits = %zu vs %i\n", hits.size(), width * height);
 
         #pragma omp parallel for
-        for (const auto& rayinfo : raytrace_info){
+        //for (const auto& rayinfo : raytrace_info){
+        for (int pixel_idx = 0; pixel_idx < hits.size(); pixel_idx++){
+            const RayHitInfo& rayinfo = *hits[pixel_idx];
             Color pixel = ray_march_single_pixel(rayinfo.hit_pos, rayinfo.ray_dir, eye, density, color);
             ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
             img.set_pixel_values(rayinfo.pixel[0], rayinfo.pixel[1], p);
@@ -99,6 +124,7 @@ public:
         _shadow_maps.push_back(shadow_map);
         _light_colors.push_back(light_col);
     }
+    void add_levelset(openvdb::FloatGrid::Ptr ls) {_levelset = ls; }
 
 private:
     //ImageData _img_data;
@@ -113,6 +139,7 @@ private:
 
     std::vector<vspf> _shadow_maps;
     std::vector<Color> _light_colors;
+    openvdb::FloatGrid::Ptr _levelset;
 };
 
 }

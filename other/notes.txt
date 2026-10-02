@@ -76,6 +76,21 @@ cmake --build build --target physics_vfx --parallel
 
 
 // ----------------------------------------------------------------------
+// BUILDING ASAN to crash on undefined
+// ----------------------------------------------------------------------
+
+cmake -S . -B build-asan \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer -g" \
+  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+
+cmake --build build-asan --target physics_vfx --parallel
+
+ASAN_OPTIONS=halt_on_error=1:detect_leaks=0 \
+./build-asan/physics_vfx -image /tmp/bunny.exr
+
+
+// ----------------------------------------------------------------------
 // PYTHON BINDINGS
 // ----------------------------------------------------------------------
 import physics_vfx as vfx

@@ -66,7 +66,27 @@ openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float vox
 VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width){
     return make_grid_field<float>(obj_mesh_to_level_set_f(obj_path, voxel_size, half_width));
 }
+
+
+openvdb::FloatGrid::Ptr mesh_to_levelset(
+    float voxel_size,
+    std::vector<openvdb::Vec3s> points,
+    std::vector<openvdb::Vec3I> triangles,
+    std::vector<openvdb::Vec4I> quads,
+    float half_width
+){
+    //std::vector<openvdb::Vec3I> quad_tris;
+    triangles.reserve(triangles.size() + 2 * quads.size());
     
+    for (const auto& quad : quads) {
+        triangles.emplace_back(quad[0], quad[1], quad[2]);
+        triangles.emplace_back(quad[0], quad[2], quad[3]);
+    }
+    //triangles.insert(triangles.end(), quad_tris.begin(), quad_tris.end());
+    auto transform = openvdb::math::Transform::createLinearTransform(voxel_size);
+    return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*transform, points, triangles, half_width);
+}
+
 
 vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value){
     auto g = create_float_grid(voxel_size, default_value);
