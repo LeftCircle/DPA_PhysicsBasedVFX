@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "command_line_parser.h"
-#include "raymarch_playground.h"
+#include "level_set_renders.h"
 
 using namespace lux;
 
@@ -18,7 +18,7 @@ int main(int argc, char** argv){
 	}
 
 	
-	raymarch_things(file_name);
+	render_bunny(file_name, "/bunny");
 
 	return 0;
 }

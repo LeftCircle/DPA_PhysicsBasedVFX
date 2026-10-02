@@ -105,6 +105,8 @@ vspf cutout(const vspf a, const vspf b);
 
 vspf clamp(const vspf a, const vspf min, const vspf max);
 
+vspf clamp_fixed(const vspf a, float min, float max);
+
 vspf mask(const vspf a);
 
 vspf blinn_blend(std::shared_ptr<const std::vector<vspf>> fields, float blend_factor, float shape_broadness);

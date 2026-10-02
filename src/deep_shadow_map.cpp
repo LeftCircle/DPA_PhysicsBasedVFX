@@ -26,7 +26,7 @@ vspf make_deep_shadow_map_parallel(
     float kappa
 ){
     // create the floatgrid based on the inputs
-    auto grid = create_float_grid(voxel_size, -10000.0f);
+    auto grid = create_float_grid(voxel_size, 0.0f);
 
     auto stamp_func = [density_field](const Vector& p){ return density_field->eval(p); };
     auto cond = [](const float val){ return val < 0; };
@@ -42,7 +42,7 @@ vspf make_deep_shadow_map_parallel(
         const openvdb::FloatGrid::ValueOnIter& iter
     ){
         Vector start_vec(grid->indexToWorld(iter.getCoord()));
-        auto eval = density_field->eval(start_vec); // Grid _should_ only have values with density
+        //auto eval = density_field->eval(start_vec); // Grid _should_ only have values with density
         auto val = accumulate_over_steps(start_vec, light.position, step_size, eval_func);
         iter.setValue(val);
     };

@@ -1,4 +1,10 @@
 
+To fix intelisense run
+cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+and reload
+
+
+
 cmake -S . -B build
 
 

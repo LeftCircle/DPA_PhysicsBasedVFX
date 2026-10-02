@@ -40,6 +40,11 @@ vspf clamp(const vspf a, const vspf min, const vspf max){
     return std::make_shared<ClampField>(std::move(a), std::move(min), std::move(max));
 }
 
+vspf clamp_fixed(const vspf a, float min, float max){
+    auto eval = [a, min, max](const Vector& p){return std::clamp(a->eval(p), min, max); };
+    return funcfield<float>(eval);
+}
+
 vspf mask(const vspf a){
     return std::make_shared<MaskField>(std::move(a));
 }

@@ -139,16 +139,21 @@ void RayMarcher::ray_march_image(
     const Vector& ncam = cam.view();
     const Vector& eye = cam.eye();
 
-    #pragma omp parallel for
-    for (int j = 0; j < img.get_height(); j++){
-        for (int i = 0; i < img.get_width(); i++){
-            float u = (2.0 * i * one_over_nx_pixelsf - 1.0) * htanfov;
-            float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
+    // #pragma omp parallel for
+    // for (int j = 0; j < img.get_height(); j++){
+    //     for (int i = 0; i < img.get_width(); i++){
+    const int width = img.get_width();
+    const int height = img.get_height();
+    #pragma omp parallel for schedule(dynamic, 32)
+    for (int pixel_index = 0; pixel_index < width * height; ++pixel_index) {
+        const int i = pixel_index % width;
+        const int j = pixel_index / width;
+        float u = (2.0 * i * one_over_nx_pixelsf - 1.0) * htanfov;
+        float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
 
-            Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
-            Color pixel = ray_march_single_pixel(ray_dir, eye, density, color, _levelset);
-            ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
-            img.set_pixel_values(i, j, p);
-        }
+        Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
+        Color pixel = ray_march_single_pixel(ray_dir, eye, density, color, _levelset);
+        ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
+        img.set_pixel_values(i, j, p);
     }
 }

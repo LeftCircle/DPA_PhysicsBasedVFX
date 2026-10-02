@@ -30,5 +30,16 @@ namespace lux{
 using vecsptr = std::shared_ptr<const std::vector<vspf>>;
 
 
+void render_bunny(const std::string& path, const std::string& name);
 
-}
+void render_turnable(
+    const std::string& path,
+    const std::string& name, 
+    const vspf& density,
+    const vspf& masked_density,
+    const vspc& color,
+    float t = 0
+);
+
+
+} // end namespace lux
