@@ -3,6 +3,12 @@ To fix intelisense run
 cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 and reload
 
+// ----------------------------------------------------------
+// ffmpeg with exr
+// ----------------------------------------------------------
+ffmpeg -framerate 24 -i bunny_rotated.%04d.exr \
+  -vf "vflip,format=yuv420p" \
+  -c:v mpeg4 -q:v 2 bunny_out_flipped.mov
 
 
 cmake -S . -B build

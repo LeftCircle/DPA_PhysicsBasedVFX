@@ -12,6 +12,7 @@
 
 
 #include "openvdb_helpers.h"
+#include "humanoid.h"
 
 
 #include "string_funcs.h"
@@ -29,8 +30,28 @@ namespace lux{
 
 using vecsptr = std::shared_ptr<const std::vector<vspf>>;
 
+struct RenderInfo{
+    RenderInfo(
+        vspf dens,
+        vspf masked_dens,
+        vspc col,
+        float sm_k,
+        float k
+    ) : density(dens), masked_density(masked_dens), color(col), sm_kappa(sm_k), kappa(k) {}
+    vspf density;
+    vspf masked_density;
+    vspc color;
+    float sm_kappa;
+    float kappa;
+};
 
 void render_bunny(const std::string& path, const std::string& name);
+RenderInfo bunny_info();
+
+void render_bust(const std::string& path, const std::string& name);
+RenderInfo bust_info();
+
+void render_bunny_in_ajax(const std::string& path, const std::string& name);
 
 void render_turnable(
     const std::string& path,
@@ -38,6 +59,8 @@ void render_turnable(
     const vspf& density,
     const vspf& masked_density,
     const vspc& color,
+    float sm_kappa,
+    float kappa,
     float t = 0
 );
 

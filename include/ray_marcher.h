@@ -124,6 +124,7 @@ public:
         _shadow_maps.push_back(shadow_map);
         _light_colors.push_back(light_col);
     }
+    void clear_shadow_maps() { _shadow_maps.clear(); _light_colors.clear(); }
     void add_levelset(openvdb::FloatGrid::Ptr ls) {_levelset = ls; }
 
 private:

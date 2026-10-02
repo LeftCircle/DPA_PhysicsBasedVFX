@@ -83,13 +83,13 @@ Color RayMarcher::ray_march_single_pixel(
     auto accessor = level_set->getConstAccessor();
     float out = 0;
     float in = 0;
-    const float skip = hw * 0.95;
+    const float skip = hw * 0.9;
+    const float check_dist = 1e-5;
     
     while( s < _sfar && T > _Tmin ) {
         // evaluate the level_set. if default positive value then take big steps
         float den = density->eval(X);
-        //if (den >= 0.0 && std::abs(openvdb::tools::BoxSampler::sample(level_set->tree(), vdb_x) - hw) < 1e-5){
-        if (den >= 0.0 && std::abs(openvdb::tools::PointSampler::sample(level_set->tree(), vdb_x) - hw) < 1e-5){
+        if (den >= 0.0 && std::abs(openvdb::tools::PointSampler::sample(level_set->tree(), vdb_x) - hw) < check_dist){
             // take a big step
             X += direction * skip;
             vdb_x = level_set->transform().worldToIndex({X.x(), X.y(), X.z()});

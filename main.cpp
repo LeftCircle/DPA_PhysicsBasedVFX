@@ -18,8 +18,9 @@ int main(int argc, char** argv){
 	}
 
 	
-	render_bunny(file_name, "/bunny");
-
+	//render_bunny(file_name, "/bunny_rotated");
+	//render_bust(file_name, "/ajax_small");
+	render_bunny_in_ajax(file_name, "/ajax_bun.exr");
 	return 0;
 }
 

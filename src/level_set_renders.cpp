@@ -1,9 +1,9 @@
 #include "level_set_renders.h"
+#include "AABB.h"
 
 namespace lux{
 
-
-void render_bunny(const std::string& path, const std::string& name){
+RenderInfo bunny_info(){
     float voxel_size = 0.001;
     float half_width = 3;
     std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
@@ -13,15 +13,117 @@ void render_bunny(const std::string& path, const std::string& name){
     std::cout << obj_filepath<< std::endl;
     
     auto bunny2 = obj_mesh_to_level_set_f(obj_filepath, voxel_size, half_width);
-    bunny2->transform().postScale(30);
+    bunny2->transform().postScale(27);
     auto bunny_bounds = bunny2->evalActiveVoxelBoundingBox();
     auto bbs = bunny_bounds.getStart();
     auto bbe = bunny_bounds.getEnd();
-    printf("bunny_bounds llc %i %i %i urc %i %i %i\n", bbs.x(), bbs.y(), bbs.z(), bbe.x(), bbs.y(), bbs.z());
+    printf("bunny_bounds llc %g %g %g urc %i %i %i\n", bbs.x() * voxel_size, bbs.y() * voxel_size, bbs.z() * voxel_size, bbe.x(), bbs.y(), bbs.z());
     auto bunny = make_grid_field<float>(bunny2);
     //bunny = clamp_fixed(bunny, -1, 1);
     bunny = bunny * make_constant(100.0f);
-    render_turnable(path, name, bunny, -mask(bunny), make_constant(Color(1, 1, 1, 0)));
+    return RenderInfo(bunny, -mask(bunny), make_constant(Color(1, 1, 1, 0)), 3.5, 1.0);
+}
+
+void render_bunny(const std::string& path, const std::string& name){
+    auto ri = bunny_info();
+    render_turnable(path, name, ri.density, ri.masked_density, ri.color, ri.sm_kappa, ri.kappa);
+}
+
+RenderInfo bust_info(){
+    float n_voxel_in_largest_dim = 2000;
+    float half_width = 3;
+    std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/ajax/smallajax.obj";
+    ObjReader<Vector> reader(obj_filepath);
+    pba::AABB<Vector> aabb;
+    auto verts = reader.get_verts();
+    for (const auto& vert : verts){
+        aabb.expand_to_include(vert);
+    }
+    auto diag = aabb.size();
+    auto max_dim = std::max(std::max(diag.x(), diag.y()), diag.z());
+    float voxel_size = max_dim / n_voxel_in_largest_dim;
+    
+    printf("n tris = %g", (float)reader.get_faces().size());
+    std::cout << obj_filepath<< std::endl;
+    
+    auto model2 = obj_mesh_to_level_set_f(obj_filepath, voxel_size, half_width);
+    model2->transform().postScale(0.11);
+    
+    
+    //model2->transform().postTranslate({0, 0.5, 0});
+    
+    
+    auto model_bounds = model2->evalActiveVoxelBoundingBox();
+    auto bbs = model_bounds.getStart();
+    auto bbe = model_bounds.getEnd();
+    voxel_size = model2->voxelSize().x();
+    printf("model_bounds llc %g %g %g urc %i %i %i\n", bbs.x() * voxel_size, bbs.y() * voxel_size, bbs.z() * voxel_size, bbe.x(), bbs.y(), bbs.z());
+    openvdb::tools::foreach(model2->beginValueOn(), [](const openvdb::FloatGrid::ValueOnIter& iter){
+        iter.setValue(std::clamp(iter.getValue(), -1.0f, 1.0f));
+    });
+    auto model = make_grid_field<float>(model2);
+    return RenderInfo(model, -mask(model), make_constant(Color(1, 1, 1, 0)), 30.5, 1.5);
+}
+
+void render_bust(const std::string& path, const std::string& name){
+   
+    auto ri = bust_info();
+    render_turnable(
+        path,
+        name,
+        ri.density,
+        ri.masked_density,
+        ri.color,
+        ri.sm_kappa,
+        ri.kappa
+    );
+}
+
+void render_bunny_in_ajax(const std::string& path, const std::string& name){
+    auto bun = bunny_info();
+    auto ajax = bust_info();
+    auto plane = make_plane({}, {0, 1, 0});
+    plane = rotate_fixed(plane, Vector(1, 0, 0), DEGTORAD(26.6));
+    plane = rotate_fixed(plane, {0, 0, 1}, DEGTORAD(16.5));
+    plane = translate_fixed(plane, {0, 0.78, 0});
+
+    auto plane_bun = make_plane({}, {0, 1, 0});
+    plane_bun = rotate_fixed(plane_bun, Vector(0, 0, 1), DEGTORAD(-27.3));
+    plane_bun = translate_fixed(plane_bun, {0, 1.35, 0});
+    //bun.density = cutout(bun.density, plane_bun);
+
+    auto bun_sphere = isf_sphere({0.1, 2.6, 0.204}, 2.0f);
+    
+    bun.density = rotate_fixed(bun.density, {1, 0, 0}, DEGTORAD(34.2));
+    bun.density = rotate_fixed(bun.density, {0, 1, 0}, DEGTORAD(0.8));
+    bun.density = rotate_fixed(bun.density, {0, 0, 1}, DEGTORAD(48.4));
+    bun.density = translate_fixed(bun.density, {0.06, 0.28, 0.41});
+    bun.density = translate_fixed(bun.density, {0, 0, -0.2});
+    
+    bun.density = intersection(bun.density, bun_sphere);
+    
+    ajax.density = cutout(ajax.density, -plane);
+    ajax.density = ajax.density * make_constant(2.25f);
+    bun.density = cutout(bun.density, plane);
+
+    auto comined = std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{-ajax.density, -bun.density});
+    auto ajaxbun = -blinn_blend(comined, 0.3, 1.0);
+    ajaxbun = ajaxbun * make_constant(4.5f);
+    //auto ajaxbun = union_fields(ajax.density, bun.density);
+    //auto ajaxbun = ajax.density;
+    //auto ajaxbun = bun.density;
+    auto vs = 0.01;
+    auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, vs);
+    //ajaxbun = stamp_isf_to_grid(ajaxbun, bounds, vs, 0.0f);
+    render_turnable(
+        path,
+        name,
+        ajaxbun,
+        -mask(ajaxbun),
+        bun.color,
+        4.0,
+        1.0
+    );
 }
 
 void render_turnable(
@@ -30,27 +132,32 @@ void render_turnable(
     const vspf& density, 
     const vspf& masked_density,
     const vspc& color,
+    float sm_kappa,
+    float kappa,
     float t
 ){
     // RENDER SETTINGS
+    int n_images = 1;
     float cam_distance = 10;
-    float near = 5;
-    float far = 15;
+    float near = 6;
+    float far = 12;
     float model_halfwidth = 3;
-    
-    float min_ds = (far - near) / 10000;
-    float max_ds = min_ds * 3.65;
-    float kappa = 1.0;
+    int width = 1920;
+    int height = 1080;
+
+    float min_ds = (far - near) / 1750;
+    float max_ds = min_ds * 8;
+    //float kappa = 1.0;
 
     // RENDER OPTIMIZATION SETTINGS
     float mesh_grid_voxelsize = 0.1;
     float sdf_voxel_size = 0.1;
-    float sdf_half_width = 3;
+    float sdf_half_width = 5;
 
     // SHADOW MAP SETTINGS
-    float shadow_map_voxel_size = 0.025;
-    float sm_kappa = 3.5;
-    float sm_stepsize = 0.0025;
+    float shadow_map_voxel_size = 0.225;
+    //float sm_kappa = 3.5;
+    float sm_stepsize = 0.00075;
 
     RayMarcher rm;
     
@@ -95,10 +202,7 @@ void render_turnable(
 
 
     // TO DO -> better to add colors to the rm and have it create the shadow map (maybe)
-    PointLight key(Color(1.0, 0.00, 0.00, 0), Vector(0, 3, 3));
-    PointLight fill(Color(0.00, 1.0, 0.00, 0), Vector(0, -3, 0));
-    PointLight rim(Color(0.00, 0.00, 1.0, 0), Vector(0, 0, -3));
-
+    
     float sm_voxelsize = shadow_map_voxel_size;
     
     //auto bounds = world_space_to_bounds({-mhw, -mhw, -mhw}, {mhw, mhw, mhw}, sm_voxelsize);
@@ -107,39 +211,71 @@ void render_turnable(
         Vector(levelset->indexToWorld(levelset_bounds.getEnd())),
         sm_voxelsize
     );
-    bounds.expand(8);
-    
-    
-    auto shaddow_map = make_deep_shadow_map_parallel(density, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
-    auto sm2 = make_deep_shadow_map(density, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa);
-    auto sm3 = make_deep_shadow_map(density, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa);
-    rm.add_shadow_map(shaddow_map, key.color);
-    rm.add_shadow_map(sm2, fill.color);
-    rm.add_shadow_map(sm3, rim.color);
+    bounds.expand(3);
+    auto diag = bounds.getStart() - bounds.getEnd();
+    auto max_xy = std::max(std::abs(diag.x()), std::abs(diag.y()));
+    auto max = std::max(max_xy, std::abs(diag.z()));
+    float bounds_hw = (float)max / 2.0f * sm_voxelsize;
+    std::cout << "bounds hw " << bounds_hw << " hw = " << max << std::endl;   
 
-    // A constant shadow map for testing if needed
-    // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
     
-    //density = -mask(density);
     // ------------------------------------------------------------------
     // Rendering the image
     // ------------------------------------------------------------------
-    ImageData render_img(1920, 1080, 4);
-    Vector eye = Vector(0, 0, cam_distance);
-    Vector view = Vector(0, 0, -1);
-    eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
-    view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / 1 * 0));
-    cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
     
-    auto start_time = std::chrono::high_resolution_clock::now();
-    rm.ray_march_image(cam, render_img, masked_density, color);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end_time - start_time;
-    std::cout << "Raymarching took " << elapsed.count() << " seconds\n";
+    float fps = 24;
+    float dt = 1.0 / fps;
+    for (int i = 0; i < n_images; i++){
+
+        // ------------------------------------------------------------------
+        // RShadow maps
+        // ------------------------------------------------------------------
+        rm.clear_shadow_maps();
+        PointLight key(Color(1.0, 0.00, 0.00, 0), rotation(Vector(0, bounds_hw, bounds_hw), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
+        PointLight fill(Color(0.00, 1.0, 0.00, 0), rotation(Vector(0, -bounds_hw, 0), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
+        PointLight rim(Color(0.00, 0.00, 1.0, 0), rotation(Vector(0, 0, -bounds_hw), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
+        
+        auto start_bake = std::chrono::high_resolution_clock::now();
+
+        auto shaddow_map = make_deep_shadow_map_parallel(density, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
+        auto sm2 = make_deep_shadow_map(density, sm_voxelsize, bounds, fill, sm_stepsize, sm_kappa * 0.2);
+        auto sm3 = make_deep_shadow_map(density, sm_voxelsize, bounds, rim, sm_stepsize, sm_kappa * 0.4);
+        rm.add_shadow_map(shaddow_map, key.color);
+        rm.add_shadow_map(sm2, fill.color);
+        rm.add_shadow_map(sm3, rim.color);
+        auto end_bake = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_bake = end_bake - start_bake;
+        std::cout << "Baking took " << elapsed_bake.count() << " seconds\n";
+
+        // A constant shadow map for testing if needed
+        // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
     
-    std::string frame_filename = path + name + ".exr";
-    render_img.oiio_write_to(frame_filename);
-    std::cout << "Wrote to " << frame_filename << std::endl;
+        // ------------------------------------------------------------------
+        // Render maps
+        // ------------------------------------------------------------------
+        
+        ImageData render_img(width, height, 4);
+        Vector eye = Vector(0, 0, cam_distance);
+        Vector view = Vector(0, 0, -1);
+        eye = rotation(eye, Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i));
+        view = rotation(view, Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i));
+        cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+        
+        
+        auto start_time = std::chrono::high_resolution_clock::now();
+        rm.ray_march_image(cam, render_img, masked_density, color);
+        
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = end_time - start_time;
+        std::cout << "Raymarching took " << elapsed.count() << " seconds\n";
+        std::cout << "Total " << elapsed.count() + elapsed_bake.count() << " seconds\n";
+        
+        
+        std::string frame_filename = path + name + "." + StringFuncs::get_zero_padded_number_string(i, 4) + ".exr";
+        render_img.oiio_write_to(frame_filename);
+        std::cout << "Wrote to " << frame_filename << std::endl;
+        t += dt;
+    }
 }
 
 
