@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <random>
+#include <openvdb/tools/RayIntersector.h>
 
 using namespace lux;
 
@@ -82,6 +83,7 @@ Color RayMarcher::ray_march_single_pixel(
     auto accessor = level_set->getConstAccessor();
     float out = 0;
     float in = 0;
+    const float skip = hw * 0.95;
     
     while( s < _sfar && T > _Tmin ) {
         // evaluate the level_set. if default positive value then take big steps
@@ -89,10 +91,10 @@ Color RayMarcher::ray_march_single_pixel(
         //if (den >= 0.0 && std::abs(openvdb::tools::BoxSampler::sample(level_set->tree(), vdb_x) - hw) < 1e-5){
         if (den >= 0.0 && std::abs(openvdb::tools::PointSampler::sample(level_set->tree(), vdb_x) - hw) < 1e-5){
             // take a big step
-            X += direction * hw;
+            X += direction * skip;
             vdb_x = level_set->transform().worldToIndex({X.x(), X.y(), X.z()});
-            s += hw;
-            out += hw;
+            s += skip;
+            out += skip;
             continue;
         }
         float ds = distribution(generator);
@@ -139,12 +141,15 @@ void RayMarcher::ray_march_image(
     const Vector& ncam = cam.view();
     const Vector& eye = cam.eye();
 
-    // #pragma omp parallel for
-    // for (int j = 0; j < img.get_height(); j++){
-    //     for (int i = 0; i < img.get_width(); i++){
+    
+    openvdb::tools::VolumeRayIntersector<openvdb::FloatGrid> main_rayinter(*_levelset);
+
     const int width = img.get_width();
     const int height = img.get_height();
-    #pragma omp parallel for schedule(dynamic, 32)
+    #pragma omp parallel
+    {
+    openvdb::tools::VolumeRayIntersector<openvdb::FloatGrid> rayinter(main_rayinter);
+    #pragma omp for schedule(dynamic, 32)
     for (int pixel_index = 0; pixel_index < width * height; ++pixel_index) {
         const int i = pixel_index % width;
         const int j = pixel_index / width;
@@ -152,8 +157,16 @@ void RayMarcher::ray_march_image(
         float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
 
         Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
+        openvdb::math::Ray<double> ray(
+            openvdb::Vec3d(eye.x(), eye.y(), eye.z()),
+            openvdb::Vec3d(ray_dir.x(), ray_dir.y(), ray_dir.z())
+        );
+
+        if (!rayinter.setWorldRay(ray)) continue;
+
         Color pixel = ray_march_single_pixel(ray_dir, eye, density, color, _levelset);
         ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
         img.set_pixel_values(i, j, p);
     }
+    } // end parallel context
 }

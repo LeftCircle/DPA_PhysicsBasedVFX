@@ -38,7 +38,7 @@ void render_turnable(
     float far = 15;
     float model_halfwidth = 3;
     
-    float min_ds = (far - near) / 50000;
+    float min_ds = (far - near) / 10000;
     float max_ds = min_ds * 3.65;
     float kappa = 1.0;
 
@@ -48,9 +48,9 @@ void render_turnable(
     float sdf_half_width = 3;
 
     // SHADOW MAP SETTINGS
-    float shadow_map_voxel_size = 0.05;
-    float sm_kappa = 1.5;
-    float sm_stepsize = 0.005;
+    float shadow_map_voxel_size = 0.025;
+    float sm_kappa = 3.5;
+    float sm_stepsize = 0.0025;
 
     RayMarcher rm;
     
@@ -70,7 +70,7 @@ void render_turnable(
     auto grid = create_float_grid(mesh_grid_voxelsize, default_val);
     float mhw = model_halfwidth;
     auto model_bounds = world_space_to_bounds(Vector(-mhw, -mhw, -mhw), Vector(mhw, mhw, mhw), grid);
-    stamp_isf_to_grid(grid, dilation(density, mesh_grid_voxelsize / 4.0), model_bounds);
+    stamp_isf_to_grid(grid, dilation(density, mesh_grid_voxelsize / 2.0), model_bounds);
 
     std::vector<openvdb::Vec3s> points;
     std::vector<openvdb::Vec3I> triangles;
@@ -107,6 +107,7 @@ void render_turnable(
         Vector(levelset->indexToWorld(levelset_bounds.getEnd())),
         sm_voxelsize
     );
+    bounds.expand(8);
     
     
     auto shaddow_map = make_deep_shadow_map_parallel(density, sm_voxelsize, bounds, key, sm_stepsize, sm_kappa);
@@ -117,7 +118,7 @@ void render_turnable(
     rm.add_shadow_map(sm3, rim.color);
 
     // A constant shadow map for testing if needed
-    //rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
+    // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
     
     //density = -mask(density);
     // ------------------------------------------------------------------
