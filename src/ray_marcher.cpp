@@ -162,9 +162,11 @@ void RayMarcher::ray_march_image(
             openvdb::Vec3d(ray_dir.x(), ray_dir.y(), ray_dir.z())
         );
 
-        if (!rayinter.setWorldRay(ray)) continue;
-
-        Color pixel = ray_march_single_pixel(ray_dir, eye, density, color, _levelset);
+        if (!rayinter.setWorldRay(ray)) {
+            //printf("no volume \n");
+            continue;
+        }
+        Color pixel = ray_march_single_pixel(ray_dir, eye, density, color);
         ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
         img.set_pixel_values(i, j, p);
     }

@@ -20,7 +20,10 @@ int main(int argc, char** argv){
 	
 	//render_bunny(file_name, "/bunny_rotated");
 	//render_bust(file_name, "/ajax_small");
-	render_bunny_in_ajax(file_name, "/ajax_bun.exr");
+	//render_bunny_in_ajax(file_name, "/ajax_bun.exr");
+	render_humanoid_with_bunnybust(file_name, "/human");
+	//render_bunny_in_ajax(file_name, "/human");
+	
 	return 0;
 }
 

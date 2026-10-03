@@ -252,8 +252,7 @@ isf_col combine_human_and_staff(float t){
 
     cf = human_col + cf;
     
-    humanoid = union_fields(humanoid, staff);   
-
+    humanoid = union_fields(humanoid, staff);
     auto [steins, scol] = isf_steiner_ring(cf);
     cf = cf + scol;
     humanoid = union_fields(humanoid, steins);

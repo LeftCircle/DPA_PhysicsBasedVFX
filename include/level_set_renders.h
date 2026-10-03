@@ -52,6 +52,9 @@ void render_bust(const std::string& path, const std::string& name);
 RenderInfo bust_info();
 
 void render_bunny_in_ajax(const std::string& path, const std::string& name);
+RenderInfo bunnybust_info();
+
+void render_humanoid_with_bunnybust(const std::string& path, const std::string& name);
 
 void render_turnable(
     const std::string& path,

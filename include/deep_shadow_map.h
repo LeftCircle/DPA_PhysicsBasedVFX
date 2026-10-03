@@ -36,7 +36,7 @@ float accumulate_over_steps(
     float initial = 0
 ){
     std::mt19937 rng(std::random_device{}());
-    std::uniform_real_distribution<float> variation(0.1f, 10.0f);
+    std::uniform_real_distribution<float> variation(0.1f, 7.0f);
 
     const auto dir = (end - start).unitvector();
     float smax = (end - start).magnitude();

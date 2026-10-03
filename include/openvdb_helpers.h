@@ -23,6 +23,8 @@ VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, flo
 void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds);
 vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value);
 
+vspc stamp_color_to_grid(const vspc& a, openvdb::CoordBBox& bounds, float voxel_size);
+
 openvdb::FloatGrid::Ptr mesh_to_levelset(
     float voxel_size,
     std::vector<openvdb::Vec3s> points,

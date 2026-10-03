@@ -100,5 +100,15 @@ void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& b
     stamp_grid<float>(grid, func, cond, bounds);
 }
 
+vspc stamp_color_to_grid(const vspc& col, openvdb::CoordBBox& bounds, float voxel_size){
+    auto col_grid = openvdb::Vec3SGrid::create();
+    col_grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    col_grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+    
+    stamp_grid<Color>(col_grid, [col](const Vector& p){ return col->eval(p); }, [](const Color& val){return true; }, bounds);
+
+    return make_grid_field<Color>(col_grid);
+}
+
 
 } // end namespace lux

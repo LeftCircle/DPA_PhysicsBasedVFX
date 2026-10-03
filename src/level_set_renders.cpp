@@ -79,7 +79,7 @@ void render_bust(const std::string& path, const std::string& name){
     );
 }
 
-void render_bunny_in_ajax(const std::string& path, const std::string& name){
+RenderInfo bunnybust_info(){
     auto bun = bunny_info();
     auto ajax = bust_info();
     auto plane = make_plane({}, {0, 1, 0});
@@ -115,14 +115,71 @@ void render_bunny_in_ajax(const std::string& path, const std::string& name){
     auto vs = 0.01;
     auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, vs);
     //ajaxbun = stamp_isf_to_grid(ajaxbun, bounds, vs, 0.0f);
+
+    return RenderInfo(
+        ajaxbun,
+        -mask(ajaxbun),
+        make_constant(Color(1, 1, 1, 0)),
+        4.0, 
+        1.0
+    );
+}
+
+void render_bunny_in_ajax(const std::string& path, const std::string& name){
+    auto ba = bunnybust_info();
+
     render_turnable(
         path,
         name,
-        ajaxbun,
-        -mask(ajaxbun),
-        bun.color,
+        ba.density,
+        ba.masked_density,
+        ba.color,
         4.0,
         1.0
+    );
+}
+
+void render_humanoid_with_bunnybust(const std::string& path, const std::string& name){
+    auto [humanoid, cf] = combine_human_and_staff(0);
+    float limit = 4.1;
+    float density_vs = limit * 2.0 / 500.0;
+    float color_vs = limit * 2 / 300.0;
+    printf("Stamping\n");
+
+
+    auto ba = bunnybust_info();
+    ba.density = scale_fixed(ba.density, Vector(0.25, 0.25, 0.25));
+    ba.density = translate_fixed(ba.density, Vector(1, -0.8, 1));
+
+    humanoid = union_fields(humanoid, ba.density);
+    cf = make_constant(Color(1, 1, 1, 0)) * mask(ba.density) + cf * mask(-ba.density);
+    
+    humanoid = humanoid * make_constant(0.5f);
+
+    auto dens_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, density_vs);
+    auto col_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, color_vs);
+    
+    auto start_bake = std::chrono::high_resolution_clock::now();
+    humanoid = stamp_isf_to_grid(humanoid, dens_bounds, density_vs, 0.0);
+    auto end_bake = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_bake = end_bake - start_bake;
+    std::cout << "Baking took " << elapsed_bake.count() << " seconds\n";
+    
+    auto start_bake_color = std::chrono::high_resolution_clock::now();
+    cf = stamp_color_to_grid(cf, col_bounds, color_vs);
+    auto end_bake_color = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed_bake_color = end_bake_color - start_bake_color;
+    std::cout << "Baking took " << elapsed_bake_color.count() << " seconds\n";
+    //humanoid = clamp_fixed(humanoid, -1.0, 1.0);
+     
+    render_turnable(
+        path,
+        name,
+        humanoid,
+        -mask(humanoid),
+        cf,
+        60.0,
+        2.0
     );
 }
 
@@ -137,27 +194,31 @@ void render_turnable(
     float t
 ){
     // RENDER SETTINGS
-    int n_images = 1;
+    int n_images = 120;
     float cam_distance = 10;
     float near = 6;
-    float far = 12;
-    float model_halfwidth = 3;
+    float far = 15;
+    float model_halfwidth = 4;
     int width = 1920;
     int height = 1080;
 
-    float min_ds = (far - near) / 1750;
-    float max_ds = min_ds * 8;
+    float min_ds = (far - near) / 3500;
+    float max_ds = min_ds * 6;
     //float kappa = 1.0;
 
     // RENDER OPTIMIZATION SETTINGS
-    float mesh_grid_voxelsize = 0.1;
+    float mesh_grid_voxelsize = 0.075;
     float sdf_voxel_size = 0.1;
     float sdf_half_width = 5;
 
     // SHADOW MAP SETTINGS
-    float shadow_map_voxel_size = 0.225;
+    //float shadow_map_voxel_size = 0.05;
+    float shadow_map_voxel_size = 4.1 * 2 / 300;
+    //float shadow_map_voxel_size = 4.1 * 2 / 100;
+    
+    std:: cout << "sm voxel size = " << shadow_map_voxel_size << std::endl;
     //float sm_kappa = 3.5;
-    float sm_stepsize = 0.00075;
+    float sm_stepsize = 0.01;
 
     RayMarcher rm;
     
@@ -191,8 +252,10 @@ void render_turnable(
     auto levelset = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*transform, points, triangles, quads, hw);
     auto levelset_bounds = levelset->evalActiveVoxelBoundingBox();
     printf("Level set made\n");
-    rm.add_levelset(levelset);
+    //rm.add_levelset(levelset);
 
+    // NOTE -> GETTING RID OF LEVEL SET HERE!!!!!!!!
+    rm.add_levelset(grid);
     
     // ------------------------------------------------------------------
     // creating lights
@@ -225,15 +288,15 @@ void render_turnable(
     
     float fps = 24;
     float dt = 1.0 / fps;
-    for (int i = 0; i < n_images; i++){
+    for (int i = 20; i < n_images; i++){
 
         // ------------------------------------------------------------------
         // RShadow maps
         // ------------------------------------------------------------------
         rm.clear_shadow_maps();
-        PointLight key(Color(1.0, 0.00, 0.00, 0), rotation(Vector(0, bounds_hw, bounds_hw), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
-        PointLight fill(Color(0.00, 1.0, 0.00, 0), rotation(Vector(0, -bounds_hw, 0), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
-        PointLight rim(Color(0.00, 0.00, 1.0, 0), rotation(Vector(0, 0, -bounds_hw), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
+        PointLight key(Color(1.0, 0.5, 0.5, 0), rotation(Vector(0, bounds_hw, bounds_hw), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
+        PointLight fill(Color(0.5, 1.0, 0.5, 0), rotation(Vector(0, -bounds_hw, 0), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
+        PointLight rim(Color(0.5, 0.5, 1.0, 0), rotation(Vector(0, 0, -bounds_hw), Vector(0, 1, 0), DEGTORAD(360.0 / n_images * i)));
         
         auto start_bake = std::chrono::high_resolution_clock::now();
 
@@ -248,7 +311,7 @@ void render_turnable(
         std::cout << "Baking took " << elapsed_bake.count() << " seconds\n";
 
         // A constant shadow map for testing if needed
-        // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 0, 0, 0));
+        // rm.add_shadow_map(make_constant<float>(1.0f), Color(1, 1, 1, 0));
     
         // ------------------------------------------------------------------
         // Render maps
@@ -263,7 +326,7 @@ void render_turnable(
         
         
         auto start_time = std::chrono::high_resolution_clock::now();
-        rm.ray_march_image(cam, render_img, masked_density, color);
+        rm.ray_march_image(cam, render_img, density, color);
         
         auto end_time = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double> elapsed = end_time - start_time;
