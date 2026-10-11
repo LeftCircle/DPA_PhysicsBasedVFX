@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <random>
-#include <openvdb/tools/RayIntersector.h>
+
 
 using namespace lux;
 
@@ -126,18 +126,7 @@ void RayMarcher::ray_march_image(
     ImageData& img,
     const VolumeSPtr<float>& density,
     const VolumeSPtr<Color>& color
-) const {
-    // First let's find the pixel size. Can we assume square pixels??
-    const float htanfov = cam.get_htanfov();
-    const float vtanfov = cam.get_vtanfov();
-    const float one_over_nx_pixelsf = 1.0 / (float)img.get_width();
-    const float one_over_ny_pixelsf = 1.0 / (float)img.get_height();
-    const Vector& rhat = cam.right();
-    const Vector& vhat = cam.up();
-    const Vector& ncam = cam.view();
-    const Vector& eye = cam.eye();
-
-    
+) const {   
     openvdb::tools::VolumeRayIntersector<openvdb::FloatGrid> main_rayinter(*_levelset);
 
     const int width = img.get_width();
@@ -149,22 +138,45 @@ void RayMarcher::ray_march_image(
     for (int pixel_index = 0; pixel_index < width * height; ++pixel_index) {
         const int i = pixel_index % width;
         const int j = pixel_index / width;
-        float u = (2.0 * i * one_over_nx_pixelsf - 1.0) * htanfov;
-        float v = (2.0 * j * one_over_ny_pixelsf - 1.0) * vtanfov;
-
-        Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
-        openvdb::math::Ray<double> ray(
-            openvdb::Vec3d(eye.x(), eye.y(), eye.z()),
-            openvdb::Vec3d(ray_dir.x(), ray_dir.y(), ray_dir.z())
-        );
-
+        
+        auto ray = get_ray(cam, i, j, width, height);
         if (!rayinter.setWorldRay(ray)) {
             //printf("no volume \n");
             continue;
         }
-        Color pixel = ray_march_single_pixel(ray_dir, eye, density, color, _levelset);
+        Color pixel = ray_march_single_pixel(ray.dir(), ray.eye(), density, color, _levelset);
         ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
         img.set_pixel_values(i, j, p);
     }
     } // end parallel context
 }
+
+openvdb::math::Ray<double> RayMarcher::get_ray(
+    Camera& cam,
+    int x,
+    int y,
+    int width,
+    int height
+) {
+    const float htanfov = cam.get_htanfov();
+    const float vtanfov = cam.get_vtanfov();
+    const float one_over_nx_pixelsf = 1.0 / (float)width;
+    const float one_over_ny_pixelsf = 1.0 / (float)height;
+    const Vector& rhat = cam.right();
+    const Vector& vhat = cam.up();
+    const Vector& ncam = cam.view();
+    const Vector& eye = cam.eye();
+
+    float u = (2.0 * x * one_over_nx_pixelsf - 1.0) * htanfov;
+    float v = (2.0 * y * one_over_ny_pixelsf - 1.0) * vtanfov;
+
+    Vector ray_dir = (u * rhat + v * vhat + ncam).unitvector();
+    return openvdb::math::Ray<double>(
+        openvdb::Vec3d(eye.x(), eye.y(), eye.z()),
+        openvdb::Vec3d(ray_dir.x(), ray_dir.y(), ray_dir.z())
+    );
+}
+
+
+
+

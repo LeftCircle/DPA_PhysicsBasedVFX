@@ -2,6 +2,8 @@
 
 #include <Vector.h>
 
+#include <openvdb/tools/RayIntersector.h>
+
 #include "image_data.h"
 #include "volume.h"
 #include "Color.h"
@@ -126,6 +128,8 @@ public:
     }
     void clear_shadow_maps() { _shadow_maps.clear(); _light_colors.clear(); }
     void add_levelset(openvdb::FloatGrid::Ptr ls) {_levelset = ls; }
+
+    static openvdb::math::Ray<double> get_ray(Camera& cam, int x, int y, int width, int height);
 
 private:
     //ImageData _img_data;

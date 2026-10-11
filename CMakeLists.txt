@@ -2,12 +2,23 @@ cmake_minimum_required(VERSION 3.24)
 
 project(PhysicsBasedVFX
     VERSION 0.1.0
-    LANGUAGES CXX
+    LANGUAGES CXX CUDA
 )
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+
+
+# ------------------------------------------------------------
+# CUDA
+# ------------------------------------------------------------
+# Choose the architecture appropriate for your GPU.
+set(CMAKE_CUDA_ARCHITECTURES native)
+
+find_package(CUDAToolkit REQUIRED)
 
 # ------------------------------------------------------------
 # Options
@@ -114,8 +125,13 @@ add_library(pbvfx STATIC
     ${PBVFX_HEADERS}
 )
 
+target_sources(pbvfx PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cuda/ray_marcher_cuda.cu"
+)
+
 set_target_properties(pbvfx PROPERTIES
     POSITION_INDEPENDENT_CODE ON
+    CUDA_SEPARABLE_COMPILATION ON
 )
 
 target_include_directories(pbvfx
@@ -130,11 +146,17 @@ target_link_libraries(pbvfx
         image_processing
         OpenVDB::openvdb
         Boost::headers
+        CUDA::cudart
 )
 
 target_compile_definitions(pbvfx
     PUBLIC
         NANOVDB_USE_OPENVDB=1
+)
+
+target_compile_options(pbvfx PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:--expt-relaxed-constexpr>
+    $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda>
 )
 
 # ------------------------------------------------------------

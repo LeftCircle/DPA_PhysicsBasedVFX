@@ -44,7 +44,7 @@ class Camera
 
     bool isVisible( const lux::Vector& P ) const;
 
-    char *__str__(); 
+    char *__str__();
 
   protected:
 

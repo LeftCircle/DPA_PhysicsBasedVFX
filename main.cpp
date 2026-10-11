@@ -2,7 +2,7 @@
 #include <memory>
 
 #include "command_line_parser.h"
-#include "level_set_renders.h"
+#include "level_set_render_cuda.h"
 
 using namespace lux;
 
@@ -18,11 +18,12 @@ int main(int argc, char** argv){
 	}
 
 	//render_bunny(file_name, "/bunny_rotated");
-	//render_bust(file_name, "/ajax_small");
+	// render_bust(file_name, "/ajax_small");
 	//render_bunny_in_ajax(file_name, "/ajax_bun.exr");
-	render_humanoid_with_bunnybust(file_name, "/human");
+	//render_humanoid_with_bunnybust(file_name, "/human");
 	//render_bunny_in_ajax(file_name, "/human");
-	
+	cuda_render_bunny(file_name, "/cuda_bunny");
+
 	return 0;
 }
 
