@@ -7,10 +7,6 @@
 using namespace lux;
 
 
-// void RayMarcher::set_dimensions(int x, int y){
-//     _img_data.set_dimensions(x, y, 4); // 4 for rgba
-// }
-
 Color RayMarcher::ray_march_single_pixel(
     const Vector& start_pos,
     const Vector& direction,
@@ -166,7 +162,7 @@ void RayMarcher::ray_march_image(
             //printf("no volume \n");
             continue;
         }
-        Color pixel = ray_march_single_pixel(ray_dir, eye, density, color);
+        Color pixel = ray_march_single_pixel(ray_dir, eye, density, color, _levelset);
         ImageData::pixel p = {(float)pixel.red(), (float)pixel.green(), (float)pixel.blue(), (float)pixel.alpha()};
         img.set_pixel_values(i, j, p);
     }

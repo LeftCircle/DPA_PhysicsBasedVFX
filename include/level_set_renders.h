@@ -55,6 +55,7 @@ void render_bunny_in_ajax(const std::string& path, const std::string& name);
 RenderInfo bunnybust_info();
 
 void render_humanoid_with_bunnybust(const std::string& path, const std::string& name);
+void write_out_humanoid_bunnybust(const std::string& path, const std::string& name);
 
 void render_turnable(
     const std::string& path,

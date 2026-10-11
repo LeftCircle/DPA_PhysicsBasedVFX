@@ -112,9 +112,9 @@ RenderInfo bunnybust_info(){
     //auto ajaxbun = union_fields(ajax.density, bun.density);
     //auto ajaxbun = ajax.density;
     //auto ajaxbun = bun.density;
-    auto vs = 0.01;
+    auto vs = 0.005;
     auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, vs);
-    //ajaxbun = stamp_isf_to_grid(ajaxbun, bounds, vs, 0.0f);
+    ajaxbun = stamp_isf_to_grid(ajaxbun, bounds, vs, 0.0001f);
 
     return RenderInfo(
         ajaxbun,
@@ -142,34 +142,38 @@ void render_bunny_in_ajax(const std::string& path, const std::string& name){
 void render_humanoid_with_bunnybust(const std::string& path, const std::string& name){
     auto [humanoid, cf] = combine_human_and_staff(0);
     float limit = 4.1;
-    float density_vs = limit * 2.0 / 500.0;
-    float color_vs = limit * 2 / 300.0;
+    float density_vs = 0.004;
+    float color_vs = 0.0075;
+    //float density_vs = limit * 2.0 / 500.0;
+    //float color_vs = limit * 2 / 300.0;
     printf("Stamping\n");
+    //printf("Grid evals = %i", (int)std::powf(limit * 2.0, 3));
 
 
     auto ba = bunnybust_info();
     ba.density = scale_fixed(ba.density, Vector(0.25, 0.25, 0.25));
     ba.density = translate_fixed(ba.density, Vector(1, -0.8, 1));
 
-    humanoid = union_fields(humanoid, ba.density);
     cf = make_constant(Color(1, 1, 1, 0)) * mask(ba.density) + cf * mask(-ba.density);
+    //cf = make_constant(Color(1, 1, 1, 0)) * mask(ba.density) + cf * mask(humanoid);
+    humanoid = union_fields(humanoid, ba.density);
     
-    humanoid = humanoid * make_constant(0.5f);
+    //humanoid = humanoid * make_constant(0.5f);
 
     auto dens_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, density_vs);
     auto col_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, color_vs);
     
     auto start_bake = std::chrono::high_resolution_clock::now();
-    humanoid = stamp_isf_to_grid(humanoid, dens_bounds, density_vs, 0.0);
+    humanoid = stamp_isf_to_grid(humanoid, dens_bounds, density_vs, 0.0, "images/humanoid_dens_stamp.vdb");
     auto end_bake = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_bake = end_bake - start_bake;
     std::cout << "Baking took " << elapsed_bake.count() << " seconds\n";
     
     auto start_bake_color = std::chrono::high_resolution_clock::now();
-    cf = stamp_color_to_grid(cf, col_bounds, color_vs);
+    cf = stamp_color_to_grid(cf, col_bounds, color_vs, "images/humanoid_col_stamp.vdb");
     auto end_bake_color = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_bake_color = end_bake_color - start_bake_color;
-    std::cout << "Baking took " << elapsed_bake_color.count() << " seconds\n";
+    std::cout << "Baking color took " << elapsed_bake_color.count() << " seconds\n";
     //humanoid = clamp_fixed(humanoid, -1.0, 1.0);
      
     render_turnable(
@@ -198,27 +202,29 @@ void render_turnable(
     float cam_distance = 10;
     float near = 6;
     float far = 15;
-    float model_halfwidth = 4;
     int width = 1920;
     int height = 1080;
-
-    float min_ds = (far - near) / 3500;
+    
+    float min_ds = 0.00005;
+    //float min_ds = (far - near) / 750;
     float max_ds = min_ds * 6;
     //float kappa = 1.0;
-
+    
     // RENDER OPTIMIZATION SETTINGS
-    float mesh_grid_voxelsize = 0.075;
-    float sdf_voxel_size = 0.1;
+    //float mesh_grid_voxelsize = 0.01;
+    float model_halfwidth = 4;
+    float mesh_grid_voxelsize = 0.005;//model_halfwidth * 2 / 750; // was 750 for humanoid
+    float sdf_voxel_size = 0.01;
     float sdf_half_width = 5;
 
     // SHADOW MAP SETTINGS
-    //float shadow_map_voxel_size = 0.05;
-    float shadow_map_voxel_size = 4.1 * 2 / 300;
+    float shadow_map_voxel_size = 0.0035;
+    //float shadow_map_voxel_size = 4.1 * 2 / 300;
     //float shadow_map_voxel_size = 4.1 * 2 / 100;
     
     std:: cout << "sm voxel size = " << shadow_map_voxel_size << std::endl;
     //float sm_kappa = 3.5;
-    float sm_stepsize = 0.01;
+    float sm_stepsize = 0.0005;
 
     RayMarcher rm;
     
@@ -235,10 +241,14 @@ void render_turnable(
     // Adding the level set to the raymarcher
     // ------------------------------------------------------------------
     float default_val = 999;
+    std::cout << "stamping" << std::endl;
+
     auto grid = create_float_grid(mesh_grid_voxelsize, default_val);
     float mhw = model_halfwidth;
     auto model_bounds = world_space_to_bounds(Vector(-mhw, -mhw, -mhw), Vector(mhw, mhw, mhw), grid);
-    stamp_isf_to_grid(grid, dilation(density, mesh_grid_voxelsize / 2.0), model_bounds);
+    //stamp_isf_to_grid(grid, dilation(density, mesh_grid_voxelsize / 2.0), model_bounds);
+    stamp_isf_to_grid(grid, density, model_bounds);
+
 
     std::vector<openvdb::Vec3s> points;
     std::vector<openvdb::Vec3I> triangles;
@@ -246,16 +256,40 @@ void render_turnable(
 
     openvdb::tools::volumeToMesh(*grid, points, triangles, quads);
 
+    std::ofstream output(path + name + ".obj");
+
+    for (const auto& point : points) {
+        output << "v "
+            << point.x() << " "
+            << point.y() << " "
+            << point.z() << "\n";
+    }
+
+    for (const auto& triangle : triangles) {
+        output << "f "
+            << triangle[0] + 1 << " "
+            << triangle[1] + 1 << " "
+            << triangle[2] + 1 << "\n";
+    }
+
+    for (const auto& quad : quads) {
+        output << "f "
+            << quad[0] + 1 << " "
+            << quad[1] + 1 << " "
+            << quad[2] + 1 << " "
+            << quad[3] + 1 << "\n";
+    }
+
+    std::cout << "obj written" << std::endl;
+
     auto transform = openvdb::math::Transform::createLinearTransform(sdf_voxel_size);
     float hw = sdf_half_width;
     printf("Making level set\n");
     auto levelset = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*transform, points, triangles, quads, hw);
     auto levelset_bounds = levelset->evalActiveVoxelBoundingBox();
     printf("Level set made\n");
-    //rm.add_levelset(levelset);
+    rm.add_levelset(levelset);
 
-    // NOTE -> GETTING RID OF LEVEL SET HERE!!!!!!!!
-    rm.add_levelset(grid);
     
     // ------------------------------------------------------------------
     // creating lights
@@ -288,7 +322,7 @@ void render_turnable(
     
     float fps = 24;
     float dt = 1.0 / fps;
-    for (int i = 20; i < n_images; i++){
+    for (int i = 0; i < n_images; i++){
 
         // ------------------------------------------------------------------
         // RShadow maps
