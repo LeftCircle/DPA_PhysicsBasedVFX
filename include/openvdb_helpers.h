@@ -21,13 +21,9 @@ openvdb::Vec3SGrid::Ptr create_color_grid(float voxel_size, openvdb::Vec3s def_v
 openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float voxel_size, float half_width);
 VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width);
 
+// TODO -> template and parallelyze all of it
 void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds);
 vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value, std::string filename = "");
-
-// partitions are the number of segments the box is broken up into. Ie partitions = 2 will break a grid into 8 segments. 
-// The width, depth, and height will be split into n^3 grids, stamped in parallel, then combined.
-// vspf stamp_isf_to_grid_parallel(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value, int partitions = 2);
-
 
 vspc stamp_color_to_grid(const vspc& a, openvdb::CoordBBox& bounds, float voxel_size, std::string filename = "");
 

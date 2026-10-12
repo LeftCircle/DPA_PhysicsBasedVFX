@@ -123,7 +123,8 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         densityNano.data(),
         densityBytes,
         cudaMemcpyHostToDevice,
-        stream));
+        stream)
+    );
 
     GPUVolume volume{};
     volume.density = reinterpret_cast<const nanovdb::NanoGrid<float>*>(densityBuffer);
@@ -152,8 +153,6 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         cam.get_htanfov(),
         cam.get_vtanfov()
     };
-
-
 
     std::vector<float4> pixels(width * height);
     float4* devicePixels = nullptr;

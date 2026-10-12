@@ -30,6 +30,8 @@ vspf make_deep_shadow_map_parallel(
 
     auto stamp_func = [density_field](const Vector& p){ return density_field->eval(p); };
     auto cond = [](const float val){ return val < 0; };
+    
+    // TODO -> this is sequential!!
     stamp_grid<float>(grid, stamp_func, cond, bounds);
 
     // Grid should now have active cells can do a parallel for each now
