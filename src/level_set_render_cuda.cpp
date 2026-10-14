@@ -78,24 +78,28 @@ namespace lux{
 void cuda_render_bunny(const std::string& path, const std::string& name){
     float limit = 4.0;
     float density_vs = 0.025;
-    float color_vs = 0.05;
+    float color_vs = 0.025;
+    float sm_vs = 0.025;
     int width = 1920;
     int height = 1080;
     float near_dist = 6;
     float far_dist = 15;
-    float min_step = 0.01;
+    float min_step = 0.001;
     float max_step = min_step * 5.0;
     float kappa = 3.0;
+    float shadow_kappa = 3.0;
+    float shadow_step = 0.001;
     printf("Stamping\n");
     auto bunn = bunny_info();
 
     auto dens_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, density_vs);
     auto col_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, color_vs);
+    auto sm_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, sm_vs);
 
     // Now let's stamp the density into nanovdb
     auto dens = bunn.density;
     auto dens_grid = stamp_isf_to_grid(density_vs, 0.00001f, dens, dens_bounds);
-    bunn.color = make_constant<Color>(Color(1, 0, 0.5, 0));
+    bunn.color = make_constant<Color>(Color(1, 1, 0.5, 0));
     auto col_grid = stamp_color_to_grid(bunn.color, col_bounds, color_vs);
 
 
@@ -130,12 +134,85 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         cudaMemcpyHostToDevice,
         stream)
     );
+    printf("Density and color sent to gpu\n");
+
+    // ----------------------------------------------------------------
+    // Shadow map packing
+    // ----------------------------------------------------------------
+    // let's make the shadow map as big as the color map for now
+
+    auto dims = sm_bounds.getEnd() - sm_bounds.getStart();
+    const int count = dims[0] * dims[1] * dims[2];
+    const std::size_t shadowBytes = static_cast<std::size_t>(count * sizeof(float));
+    float* shadowBuffer = nullptr;
+    CUDA_CHECK(cudaMalloc(&shadowBuffer, shadowBytes));
+    printf("Starting cuda shadow map\n");
+    CUDA_CHECK(launch_cuda_shadowmap(
+        reinterpret_cast<const nanovdb::NanoGrid<float>*>(densityBuffer),
+        shadowBuffer,
+        sm_bounds,
+        {0, 0, 0},
+        sm_vs,
+        {0, 3, 0},
+        shadow_step,
+        shadow_kappa,
+        stream
+    ));
+    std::vector<float> host_shadow(count);
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    printf("Shadow map completed. Copying\n");
+
+    CUDA_CHECK(cudaMemcpy(
+        host_shadow.data(),
+        shadowBuffer,
+        shadowBytes,
+        cudaMemcpyDeviceToHost
+    ));
+    CUDA_CHECK(cudaFree(shadowBuffer));
+    
+    auto shadow_grid = create_float_grid(sm_vs, 0.0f);
+    auto accessor = shadow_grid->getAccessor();
+    for (int z = 0; z < dims[2]; ++z) {
+        for (int y = 0; y < dims[1]; ++y) {
+            for (int x = 0; x < dims[0]; ++x) {
+                const int index = (z * dims[1] + y) * dims[0] + x;
+                const float transmission = host_shadow[index];
+                // Keep transmission=1 as the sparse background.
+                if (std::abs(transmission) > 1e-6f) {
+                    accessor.setValue(
+                        openvdb::Coord(x, y, z),
+                        transmission
+                    );
+                }
+            }
+        }
+    }
+
+
+    auto shadow_nano = nanovdb::tools::createNanoGrid(*shadow_grid);
+    auto device_shadow_handle = nanovdb::cuda::copyTo<nanovdb::cuda::Buffer<std::byte>>(shadow_nano, stream);
+
+    const auto* device_shadow_grid = device_shadow_handle.deviceGrid<float>();
+    const nanovdb::NanoGrid<float>* shadow_pointer_array[] = { device_shadow_grid };
+    const nanovdb::NanoGrid<float>** device_shadow_pointer_array = nullptr;
+    CUDA_CHECK(cudaMalloc(
+        &device_shadow_pointer_array,
+        sizeof(shadow_pointer_array)
+    ));
+
+    CUDA_CHECK(cudaMemcpy(
+        device_shadow_pointer_array,
+        shadow_pointer_array,
+        sizeof(shadow_pointer_array),
+        cudaMemcpyHostToDevice
+    ));
+    printf("Copy completed\n");
 
     GPUVolume volume{};
     volume.density = reinterpret_cast<const nanovdb::NanoGrid<float>*>(densityBuffer);
     volume.color = reinterpret_cast<const nanovdb::NanoGrid<nanovdb::Vec3f>*>(colorBuffer);
-    volume.shadow_maps = nullptr;
-    volume.shadow_map_count = 0;
+    volume.shadow_maps = device_shadow_pointer_array;
+    volume.shadow_map_count = 1;
     
     // -----------------------------------------------
     // Getting the cam and image into the GPU
@@ -196,7 +273,20 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     img.oiio_write_to(frame_filename);
     std::cout << "Wrote to " << frame_filename << std::endl;
 
+    // CUDA_CHECK(cudaFree(devicePixels));
+    // CUDA_CHECK(cudaFree(device_shadow_pointer_array));
+    // CUDA_CHECK(cudaFree(densityBuffer));
+    // CUDA_CHECK(cudaFree(colorBuffer));
+    // CUDA_CHECK(cudaStreamDestroy(stream));
+    // No more kernels will use device_shadow_handle.
+    device_shadow_handle.buffer().destroy(stream);
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+
+    CUDA_CHECK(cudaFree(device_shadow_pointer_array));
+    CUDA_CHECK(cudaFree(densityBuffer));
+    CUDA_CHECK(cudaFree(colorBuffer));
     CUDA_CHECK(cudaFree(devicePixels));
+
     CUDA_CHECK(cudaStreamDestroy(stream));
 }
 

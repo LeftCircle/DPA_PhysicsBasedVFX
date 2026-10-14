@@ -4,6 +4,8 @@
 
 namespace lux{
 
+using v3f = nanovdb::math::Vec3f;
+
 
 struct CudaRay {
     float3 origin;
@@ -17,7 +19,6 @@ struct CudaRay {
         );
     }
 };
-
 
 /*
 Used with 
@@ -42,6 +43,24 @@ __device__ typename GridT::ValueType sampleTrilinearWorld(
     typename GridT::ValueType values[2][2][2];
     sampler.stencil(ijk, values); // Fetch the 8 voxels
     return sampler.sample(ijkF, values); // interpolate them based on fractional part
+}
+
+
+__device__ float sampleShadowMap(
+    const GPUVolume& volume,
+    int index,
+    float3 world
+) {
+    const auto* grid = volume.shadow_maps[index];
+
+    if (!grid) {
+        return 1.0f;
+    }
+
+    auto accessor = grid->getAccessor();
+    auto sampler = nanovdb::math::createSampler<1>(accessor);
+
+    return expf(sampleTrilinearWorld(grid, sampler, world));
 }
 
 __global__ void raymarch_kernel(
@@ -116,19 +135,33 @@ __global__ void raymarch_kernel(
             auto c = sampleTrilinearWorld(render_data.color, col_sampler, world);
             float3 color = make_float3(c[0], c[1], c[2]);
 
-            if (kappa == 0.f) {
-                radiance.x += color.x;
-                radiance.y += color.y;
-                radiance.z += color.z;
-                transmittance = 0.f;
-                break;
+            // if (kappa == 0.f) {
+            //     radiance.x += color.x;
+            //     radiance.y += color.y;
+            //     radiance.z += color.z;
+            //     transmittance = 0.f;
+            //     break;
+            // }
+
+
+            float3 clights = make_float3(0, 0, 0);
+            for (int i = 0; i < render_data.shadow_map_count; i++){
+                float dsmt = sampleShadowMap(render_data, i, world);
+                // assuming only a green light for now
+                clights.y += dsmt;
             }
+
+            // float dT = std::exp( ds * _kappa * den ); // dens is negative here, so remove - mult;
+            // L += color->eval(X) * (1-dT) * T * _one_over_kappa * clights;
+            // //L += (1-dT) * T * _one_over_kappa * clights;
+            // T *= dT;
+
 
             const float nextT = expf(step * kappa * density);
             const float alpha = 1.f - nextT;
-            radiance.x += transmittance * alpha * color.x;
-            radiance.y += transmittance * alpha * color.y;
-            radiance.z += transmittance * alpha * color.z;
+            radiance.x += transmittance * alpha * color.x * clights.x;
+            radiance.y += transmittance * alpha * color.y * clights.y;
+            radiance.z += transmittance * alpha * color.z * clights.z;
             transmittance *= nextT;
         }
     }
@@ -195,7 +228,6 @@ __global__ void buildShadowMapKernel(
 
         const float rho = sampleTrilinearWorld(densityGrid, sampler, p);
 
-        // Your density field is negative inside the object.
         T += kappa * fminf(rho, 0.f) * ds;
         s += ds;
     }
@@ -230,43 +262,76 @@ cudaError_t launch_cuda_raymarch(
     return cudaGetLastError();
 }
 
+cudaError_t launch_cuda_shadowmap(
+    const nanovdb::NanoGrid<float>* device_density_grid,
+    float* out,
+    coordbbox dims,
+    Vector world_origin,
+    float voxel_size,
+    Vector light_position,
+    float shadow_step,
+    float kappa,
+    cudaStream_t stream
+){
+    constexpr int threads = 128;
+
+    auto dim = dims.getEnd() - dims.getStart();
+    auto int3dim = make_int3(dim[0], dim[1], dim[2]);
+    const int count = dim[0] * dim[1] * dim[2];
+    const int blocks = (count + threads - 1) / threads;
+    
+    const std::size_t shadowBytes = static_cast<std::size_t>(count * sizeof(float));
+    float* shadowBuffer = nullptr;
+    buildShadowMapKernel<<<blocks, threads, 0, stream>>>(
+        device_density_grid,
+        out,
+        int3dim,
+        make_float3(world_origin[0], world_origin[1], world_origin[2]),
+        voxel_size,
+        make_float3(light_position[0], light_position[1], light_position[2]),
+        shadow_step,
+        kappa
+    );
+    return cudaGetLastError();
+}
+
 // -------------------------------------------------------------
 // A cuda demo
 // -------------------------------------------------------------
-__global__ void thresholdKernel(
-    const nanovdb::NanoGrid<float>* grid,
-    float* output,
-    nanovdb::Coord first,
-    int count,
-    float threshold)
-{
-    const int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= count) return;
+// __global__ void thresholdKernel(
+//     const nanovdb::NanoGrid<float>* grid,
+//     float* output,
+//     nanovdb::Coord first,
+//     int count,
+//     float threshold)
+// {
+//     const int i = blockIdx.x * blockDim.x + threadIdx.x;
+//     if (i >= count) return;
 
-    // This example samples a line in NanoVDB index coordinates.
-    const nanovdb::Coord ijk(first.x() + i, first.y(), first.z());
+//     // This example samples a line in NanoVDB index coordinates.
+//     const nanovdb::Coord ijk(first.x() + i, first.y(), first.z());
 
-    auto accessor = grid->getAccessor();
-    const float density = accessor.getValue(ijk);
+//     auto accessor = grid->getAccessor();
+//     const float density = accessor.getValue(ijk);
 
-    output[i] = density >= threshold ? density : 0.0f;
-}
+//     output[i] = density >= threshold ? density : 0.0f;
+// }
 
-cudaError_t launchThreshold(
-    const nanovdb::NanoGrid<float>* deviceGrid,
-    float* deviceOutput,
-    nanovdb::Coord first,
-    int count,
-    float threshold,
-    cudaStream_t stream)
-{
-    constexpr int threads = 128;
-    const int blocks = (count + threads - 1) / threads;
+// cudaError_t launchThreshold(
+//     const nanovdb::NanoGrid<float>* deviceGrid,
+//     float* deviceOutput,
+//     nanovdb::Coord first,
+//     int count,
+//     float threshold,
+//     cudaStream_t stream)
+// {
+//     constexpr int threads = 128;
+//     const int blocks = (count + threads - 1) / threads;
 
-    thresholdKernel<<<blocks, threads, 0, stream>>>(
-        deviceGrid, deviceOutput, first, count, threshold);
+//     thresholdKernel<<<blocks, threads, 0, stream>>>(
+//         deviceGrid, deviceOutput, first, count, threshold);
 
-    return cudaGetLastError();
-}
+//     return cudaGetLastError();
+// }
 
 } // end namespace lux

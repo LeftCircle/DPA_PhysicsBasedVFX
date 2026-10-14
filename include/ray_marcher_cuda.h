@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <cuda_runtime.h>
 #include <nanovdb/NanoVDB.h>
+#include <nanovdb/cuda/Buffer.h>
+#include <nanovdb/cuda/HandleStorage.h>
 
 #include "Camera.h"
 #include "ray_marcher.h"
@@ -55,17 +57,29 @@ cudaError_t launch_cuda_raymarch(
     cudaStream_t stream
 );
 
+cudaError_t launch_cuda_shadowmap(
+    const nanovdb::NanoGrid<float>* device_density_grid,
+    float* out,
+    coordbbox dims,
+    Vector world_origin,
+    float voxel_size,
+    Vector light_position,
+    float shadow_step,
+    float kappa,
+    cudaStream_t stream
+); 
+
 // -------------------------------------------------------------
 // A cuda demo
 // -------------------------------------------------------------
 
-cudaError_t launchThreshold(
-    const nanovdb::NanoGrid<float>* deviceGrid,
-    float* deviceOutput,
-    nanovdb::Coord first,
-    int count,
-    float threshold,
-    cudaStream_t stream);
+// cudaError_t launchThreshold(
+//     const nanovdb::NanoGrid<float>* deviceGrid,
+//     float* deviceOutput,
+//     nanovdb::Coord first,
+//     int count,
+//     float threshold,
+//     cudaStream_t stream);
 
 
 } // end namespace lux
