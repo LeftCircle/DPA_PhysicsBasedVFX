@@ -142,6 +142,14 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     // let's make the shadow map as big as the color map for now
 
     auto dims = sm_bounds.getEnd() - sm_bounds.getStart();
+    const auto lo = sm_bounds.getStart();
+    const auto hi = sm_bounds.getEnd(); // inclusive
+
+    const int nx = hi[0] - lo[0] + 1;
+    const int ny = hi[1] - lo[1] + 1;
+    const int nz = hi[2] - lo[2] + 1;
+
+    const float3 origin = make_float3(lo[0] * sm_vs, lo[1] * sm_vs, lo[2] * sm_vs);
     const int count = dims[0] * dims[1] * dims[2];
     const std::size_t shadowBytes = static_cast<std::size_t>(count * sizeof(float));
     float* shadowBuffer = nullptr;
@@ -151,7 +159,7 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         reinterpret_cast<const nanovdb::NanoGrid<float>*>(densityBuffer),
         shadowBuffer,
         sm_bounds,
-        {0, 0, 0},
+        {origin.x, origin.y, origin.z},
         sm_vs,
         {0, 3, 0},
         shadow_step,
@@ -180,7 +188,7 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
                 // Keep transmission=1 as the sparse background.
                 if (std::abs(transmission) > 1e-6f) {
                     accessor.setValue(
-                        openvdb::Coord(x, y, z),
+                        openvdb::Coord(x + lo[0], y + lo[1], z + lo[2]),
                         transmission
                     );
                 }
