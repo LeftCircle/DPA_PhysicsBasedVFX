@@ -26,6 +26,9 @@ RenderInfo bunny_info(){
 
 void render_bunny(const std::string& path, const std::string& name){
     auto ri = bunny_info();
+    float color_vs = 0.15;
+    auto col_bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, color_vs);
+    ri.color = make_grid_field<Color>(stamp_color_to_grid(ri.color, col_bounds, color_vs));
     render_turnable(path, name, ri.density, ri.masked_density, ri.color, ri.sm_kappa, ri.kappa);
 }
 
@@ -109,12 +112,9 @@ RenderInfo bunnybust_info(){
     auto comined = std::make_shared<const std::vector<vspf>>(std::initializer_list<vspf>{-ajax.density, -bun.density});
     auto ajaxbun = -blinn_blend(comined, 0.3, 1.0);
     ajaxbun = ajaxbun * make_constant(4.5f);
-    //auto ajaxbun = union_fields(ajax.density, bun.density);
-    //auto ajaxbun = ajax.density;
-    //auto ajaxbun = bun.density;
     auto vs = 0.005;
     auto bounds = world_space_to_bounds({-3, -3, -3}, {3, 3, 3}, vs);
-    ajaxbun = stamp_isf_to_grid(ajaxbun, bounds, vs, 0.0001f);
+    ajaxbun = make_grid_field<float>(stamp_isf_to_grid(vs, 0.0001f, ajaxbun, bounds));
 
     return RenderInfo(
         ajaxbun,
@@ -164,13 +164,15 @@ void render_humanoid_with_bunnybust(const std::string& path, const std::string& 
     auto col_bounds = world_space_to_bounds({-limit, -limit, -limit}, {limit, limit, limit}, color_vs);
     
     auto start_bake = std::chrono::high_resolution_clock::now();
-    humanoid = stamp_isf_to_grid(humanoid, dens_bounds, density_vs, 0.0, "images/humanoid_dens_stamp.vdb");
+    humanoid = make_grid_field<float>(
+        stamp_isf_to_grid(density_vs, 0.0, humanoid, dens_bounds, "images/humanoid_dens_stamp.vdb")
+    );
     auto end_bake = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_bake = end_bake - start_bake;
     std::cout << "Baking took " << elapsed_bake.count() << " seconds\n";
     
     auto start_bake_color = std::chrono::high_resolution_clock::now();
-    cf = stamp_color_to_grid(cf, col_bounds, color_vs, "images/humanoid_col_stamp.vdb");
+    cf = make_grid_field<Color>(stamp_color_to_grid(cf, col_bounds, color_vs, "images/humanoid_col_stamp.vdb"));
     auto end_bake_color = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed_bake_color = end_bake_color - start_bake_color;
     std::cout << "Baking color took " << elapsed_bake_color.count() << " seconds\n";
@@ -243,11 +245,10 @@ void render_turnable(
     float default_val = 999;
     std::cout << "stamping" << std::endl;
 
-    auto grid = create_float_grid(mesh_grid_voxelsize, default_val);
     float mhw = model_halfwidth;
-    auto model_bounds = world_space_to_bounds(Vector(-mhw, -mhw, -mhw), Vector(mhw, mhw, mhw), grid);
+    auto model_bounds = world_space_to_bounds(Vector(-mhw, -mhw, -mhw), Vector(mhw, mhw, mhw), mesh_grid_voxelsize);
     //stamp_isf_to_grid(grid, dilation(density, mesh_grid_voxelsize / 2.0), model_bounds);
-    stamp_isf_to_grid(grid, density, model_bounds);
+    auto grid = stamp_isf_to_grid(mesh_grid_voxelsize, default_val, density, model_bounds);
 
 
     std::vector<openvdb::Vec3s> points;

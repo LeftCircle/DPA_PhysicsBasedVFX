@@ -94,27 +94,22 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
 
     // Now let's stamp the density into nanovdb
     auto dens = bunn.density;
-    auto dens_grid = create_float_grid(density_vs, 0.00001f);
-    stamp_isf_to_grid(dens_grid, dens, dens_bounds);
-    // auto density_handle = nanovdb::tools::createNanoGrid(*dens_grid);
-    // auto* host_density_grid = density_handle.grid<float>();
-    
-    // auto device_density_handle = density_handle.deviceUpload();
-    // const auto* device_density_grid = device_density_handle.deviceGrid<float>();
-    
-    // GPUVolume volume;
-    // volume.density = 
+    auto dens_grid = stamp_isf_to_grid(density_vs, 0.00001f, dens, dens_bounds);
+    bunn.color = make_constant<Color>(Color(1, 0, 0.5, 0));
+    auto col_grid = stamp_color_to_grid(bunn.color, col_bounds, color_vs);
 
-    cudaStream_t stream{};
-    CUDA_CHECK(cudaStreamCreate(&stream));
-
-    //auto densityNano = nanovdb::tools::createNanoGrid(*dens_grid);
-    //auto colorNano   = nanovdb::tools::createNanoGrid(*color_grid);
 
     // ----------------------------------------------------------------
+    // Packing the data off to the GPU
+    // ----------------------------------------------------------------
+    cudaStream_t stream{};
+    CUDA_CHECK(cudaStreamCreate(&stream));
+    
     auto densityNano = nanovdb::tools::createNanoGrid(*dens_grid);
+    auto colorNano = nanovdb::tools::createNanoGrid(*col_grid);
 
     const std::size_t densityBytes = static_cast<std::size_t>(densityNano.size());
+    const std::size_t colorBytes = static_cast<std::size_t>(colorNano.size());
 
     void* densityBuffer = nullptr;
     CUDA_CHECK(cudaMalloc(&densityBuffer, densityBytes));
@@ -125,19 +120,27 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         cudaMemcpyHostToDevice,
         stream)
     );
+    
+    void* colorBuffer = nullptr;
+    CUDA_CHECK(cudaMalloc(&colorBuffer, colorBytes));
+    CUDA_CHECK(cudaMemcpyAsync(
+        colorBuffer,
+        colorNano.data(),
+        colorBytes,
+        cudaMemcpyHostToDevice,
+        stream)
+    );
 
     GPUVolume volume{};
     volume.density = reinterpret_cast<const nanovdb::NanoGrid<float>*>(densityBuffer);
-    volume.color = nullptr;
+    volume.color = reinterpret_cast<const nanovdb::NanoGrid<nanovdb::Vec3f>*>(colorBuffer);
     volume.shadow_maps = nullptr;
     volume.shadow_map_count = 0;
+    
     // -----------------------------------------------
+    // Getting the cam and image into the GPU
+    // ----------------------------------------------------------------
 
-    //GPUVolume volume{};
-    // volume.density = densityDevice.deviceGrid<float>();
-    // //volume.color = colorDevice.deviceGrid<nanovdb::Vec3f>();
-    // volume.shadow_maps = nullptr;
-    // volume.shadow_map_count = 0;
     Camera cam;
     Vector eye = Vector(0, 0, 10);
     Vector view = Vector(0, 0, -1);
@@ -162,6 +165,10 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         pixels.size() * sizeof(float4))
     );
 
+    // ----------------------------------------------------------------
+    // The actual render
+    // ----------------------------------------------------------------
+
     CUDA_CHECK(launch_cuda_raymarch(
         volume, devicePixels, width, height, gpuCam,
         near_dist, far_dist, min_step, max_step, kappa, stream));
@@ -172,6 +179,10 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
         pixels.size() * sizeof(float4),
         cudaMemcpyDeviceToHost)
     );
+
+    // ----------------------------------------------------------------
+    // Saving out the final image
+    // ----------------------------------------------------------------
 
     ImageData img(width, height, 4);
     for (int i = 0; i < width * height; ++i) {

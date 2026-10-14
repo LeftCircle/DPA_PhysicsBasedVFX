@@ -169,6 +169,12 @@ struct GridTypes<Color>{
     }
 };
 
+template <typename T>
+using GridPtr = typename GridTypes<T>::GridType;
+
+template <typename T>
+using Grid = typename GridPtr<T>::element_type;
+
 // Note -> Grid _should_ be a ptr
 template<typename T>
 VSPtr<T> make_grid_field(const typename GridTypes<T>::GridType grid){

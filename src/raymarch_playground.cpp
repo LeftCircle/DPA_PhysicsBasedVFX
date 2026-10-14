@@ -106,9 +106,9 @@ void raymarch_things(const std::string& filename, float t){
     // Now let's try making a mesh from the bunny, then passing that into the raymarcher
     //float voxel_size = 0.01;
     float default_val = 999;
-    auto grid = create_float_grid(0.25, default_val);
-    auto mesh_bounds = world_space_to_bounds(Vector(-3, -3, -3), Vector(3, 3, 3), grid);
-    stamp_isf_to_grid(grid, dilation(bunny, 0.25 / 4.0), mesh_bounds);
+    float vs = 0.25;
+    auto mesh_bounds = world_space_to_bounds(Vector(-3, -3, -3), Vector(3, 3, 3), vs);
+    auto grid = stamp_isf_to_grid(vs, default_val, dilation(bunny, 0.25 / 4.0), mesh_bounds);
 
     std::vector<openvdb::Vec3s> points;
     std::vector<openvdb::Vec3I> triangles;

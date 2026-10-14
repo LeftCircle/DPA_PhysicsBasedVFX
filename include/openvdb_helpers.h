@@ -4,6 +4,8 @@
 #include <limits>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/ValueTransformer.h>
+#include <openvdb/tools/MeshToVolume.h>
+#include <tbb/parallel_for.h>
 
 #include "field_interface.h"
 #include "Vector.h"
@@ -22,10 +24,28 @@ openvdb::FloatGrid::Ptr obj_mesh_to_level_set_f(std::string& obj_path, float vox
 VSPtr<float> obj_mesh_to_grid_field(std::string& obj_path, float voxel_size, float half_width);
 
 // TODO -> template and parallelyze all of it
-void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds);
-vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value, std::string filename = "");
+GridPtr<float> stamp_isf_to_grid(
+    float voxel_size,
+    float def_val,
+    const vspf& a,
+    coordbbox& bounds,
+    std::string filename = ""
+);
 
-vspc stamp_color_to_grid(const vspc& a, openvdb::CoordBBox& bounds, float voxel_size, std::string filename = "");
+GridPtr<Color> stamp_color_to_grid(const vspc& a, openvdb::CoordBBox& bounds, float voxel_size, std::string filename = "");
+
+// Allows us to create float or Color grids based on 
+// the template specialization in field_interface
+template <typename T>
+GridPtr<T> create_grid(
+    float voxel_size,
+    typename Grid<T>::ValueType background = typename Grid<T>::ValueType{}
+){
+    auto grid = Grid<T>::create(background);
+    grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
+    grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
+    return grid;
+}
 
 template <typename GridType>
 void save_to_disk(const GridType& grid, std::string& filename){
@@ -61,6 +81,43 @@ void stamp_grid(typename GridTypes<T>::GridType grid, Func func, CondFunc condit
             }
         }
     }
+}
+
+template <typename T, typename Func, typename CondFunc>
+GridPtr<T> stamp_grid_parallel(
+    float voxel_size,
+    typename Grid<T>::ValueType default_value,
+    Func func,
+    CondFunc condition_func,
+    const coordbbox& bounds,
+    std::string filename = ""
+){
+    // let tbb craete some local grids
+    tbb::enumerable_thread_specific<typename GridTypes<T>::GridType> thread_grids(
+        [&](){return create_grid<T>(voxel_size, default_value); }
+    );
+    tbb::parallel_for(
+        bounds,
+        [&](const openvdb::CoordBBox& sub_bounds){
+            auto local_grid = thread_grids.local();
+            stamp_grid<T>(
+                local_grid,
+                func,
+                condition_func,
+                sub_bounds
+            );
+        }
+    );
+    
+    auto result = create_grid<T>(voxel_size, default_value);
+    for (const auto& local_grid : thread_grids) {
+        result->tree().merge(local_grid->tree());
+    }
+    // TODO -> this should be it's own wrapper function 
+    if (filename != ""){
+        save_to_disk(result, filename);
+    }
+    return result;
 }
 
 

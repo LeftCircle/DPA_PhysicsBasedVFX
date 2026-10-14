@@ -1,6 +1,4 @@
 #include "openvdb_helpers.h"
-#include <openvdb/tools/MeshToVolume.h>
-#include <tbb/parallel_for.h>
 
 #include "obj_reader.h" 
 #include "AABB.h"
@@ -96,63 +94,19 @@ openvdb::FloatGrid::Ptr mesh_to_levelset(
     return openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*transform, points, triangles, half_width);
 }
 
-
-// vspf stamp_isf_to_grid(const vspf& a, openvdb::CoordBBox& bounds, float voxel_size, float default_value){
-//     auto g = create_float_grid(voxel_size, default_value);
-//     stamp_isf_to_grid(g, a, bounds);
-//     return make_grid_field<float>(g);
-// }
-
-vspf stamp_isf_to_grid(
-    const vspf& a,
-    openvdb::CoordBBox& bounds,
+GridPtr<float> stamp_isf_to_grid(
     float voxel_size,
-    float default_value,
+    float def_val,
+    const vspf& a,
+    coordbbox& bounds,
     std::string filename
 ){
-
-    // start by creating an array of bounds
-    //std::vector<openvdb::FloatGrid::Ptr> local_grids(partitions);
-    auto func = [a](const Vector& p){ return a->eval(p); };
-    auto cond = [](const float val){ return val < 0; };
-    
-    // let tbb craete some local grids
-    tbb::enumerable_thread_specific<openvdb::FloatGrid::Ptr> thread_grids(
-        [&](){return create_float_grid(voxel_size, default_value); }
-    );
-    tbb::parallel_for(
-        bounds,
-        [&](const openvdb::CoordBBox& sub_bounds){
-            auto local_grid = thread_grids.local();
-            stamp_grid<float>(
-                local_grid,
-                func,
-                cond,
-                sub_bounds
-            );
-        }
-    );
-    
-    auto result = create_float_grid(voxel_size, default_value);
-
-    for (const auto& local_grid : thread_grids) {
-        result->tree().merge(local_grid->tree());
-    }
-
-    if (filename != ""){
-        save_to_disk(result, filename);
-    }
-
-    return make_grid_field<float>(result);
-}
-
-void stamp_isf_to_grid(openvdb::FloatGrid::Ptr grid, const vspf& a, coordbbox& bounds){
     auto func = [a](const Vector& p){ return a->eval(p); };
     auto cond = [](const float val){ return val <= 0; };
-    stamp_grid<float>(grid, func, cond, bounds);
+    return stamp_grid_parallel<float>(voxel_size, def_val, func, cond, bounds, std::move(filename));
 }
 
-vspc stamp_color_to_grid(
+GridPtr<Color> stamp_color_to_grid(
     const vspc& col,
     openvdb::CoordBBox& bounds,
     float voxel_size,
@@ -161,43 +115,10 @@ vspc stamp_color_to_grid(
 ){
     auto func = [col](const Vector& p){ return col->eval(p); };
     auto cond = [](const Color& val){return true; };
-    
-    // let tbb craete some local grids
-    tbb::enumerable_thread_specific<openvdb::Vec3SGrid::Ptr> thread_grids(
-        [&](){return create_color_grid(voxel_size); }
-    );
-    tbb::parallel_for(
-        bounds,
-        [&](const openvdb::CoordBBox& sub_bounds){
-            auto local_grid = thread_grids.local();
-            stamp_grid<Color>(
-                local_grid,
-                func,
-                cond,
-                sub_bounds
-            );
-        }
-    );
-    
-    auto result = create_color_grid(voxel_size);
-
-    for (const auto& local_grid : thread_grids) {
-        result->tree().merge(local_grid->tree());
-    }
-
-    if (filename != ""){
-        save_to_disk(result, filename);
-    }
-    return make_grid_field<Color>(result);
-    
-    // auto col_grid = openvdb::Vec3SGrid::create();
-    // col_grid->setGridClass(openvdb::GridClass::GRID_FOG_VOLUME);
-    // col_grid->setTransform(openvdb::math::Transform::createLinearTransform(voxel_size));
-    
-    // stamp_grid<Color>(col_grid, [col](const Vector& p){ return col->eval(p); }, [](const Color& val){return true; }, bounds);
-
-    // return make_grid_field<Color>(col_grid);
-
+    auto default_val = GridTypes<Color>::to_grid(Color(0, 0, 0, 0));
+    auto col_grid = stamp_grid_parallel<Color>(voxel_size, default_val, func, cond, bounds);
+   
+    return col_grid;
 }
 
 

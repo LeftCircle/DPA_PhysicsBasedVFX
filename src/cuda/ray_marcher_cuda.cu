@@ -24,7 +24,6 @@ Used with
 auto densityAcc = volume.density->getAccessor();
 auto densitySampler = nanovdb::math::createSampler<1>(densityAcc);
 <1> does trilinear interp
-
 */
 template <typename GridT, typename SamplerT>
 __device__ typename GridT::ValueType sampleTrilinearWorld(
@@ -84,26 +83,22 @@ __global__ void raymarch_kernel(
     dir.y *= inv_len;
     dir.z *= inv_len;
 
-    auto densityAcc = render_data.density->getAccessor();
-
-    const bool has_color = render_data.color != nullptr;
-    //nanovdb::NanoGrid<nanovdb::Vec3f>::AccessorType colorAcc;
-    //if (has_color) colorAcc = render_data.color->getAccessor();
-
+    
     float3 radiance = make_float3(0.f, 0.f, 0.f);
-    float transmittance = 1.f;
-
+    float transmittance = 1.0f;
+    
     const float voxel_step = static_cast<float>(render_data.density->voxelSize()[0]);
     const float step = fminf(max_step, fmaxf(min_step, voxel_step));
-
+    
     if (step <= 0.f) {
         output[pixel] = make_float4(0.f, 0.f, 0.f, 0.f);
         return;
     }
-
+    
     auto dens_acc = render_data.density->getAccessor();
     auto dens_sampler = nanovdb::math::createSampler<1>(dens_acc);
-    // TODO -> same sampler for color
+    auto color_acc = render_data.color->getAccessor();
+    auto col_sampler = nanovdb::math::createSampler<1>(color_acc);
 
     for (float t = near_dist;
          t < far_dist && transmittance > 1e-3f;
@@ -118,13 +113,8 @@ __global__ void raymarch_kernel(
         const float density = sampleTrilinearWorld(render_data.density, dens_sampler, world);
 
         if (density < 0.f) {
-            float3 color = make_float3(1.f, 1.f, 1.f);
-
-            // keeping color as constant for now
-            // if (has_color) {
-            //     const nanovdb::Vec3f c = sampleTrilinearWorld(volume.color, colorAcc, world);
-            //     color = make_float3(c.x(), c.y(), c.z());
-            // }
+            auto c = sampleTrilinearWorld(render_data.color, col_sampler, world);
+            float3 color = make_float3(c[0], c[1], c[2]);
 
             if (kappa == 0.f) {
                 radiance.x += color.x;
@@ -146,6 +136,73 @@ __global__ void raymarch_kernel(
     output[pixel] = make_float4(
         radiance.x, radiance.y, radiance.z, 1.f - transmittance);
 }
+
+
+__global__ void buildShadowMapKernel(
+    const nanovdb::NanoGrid<float>* densityGrid,
+    float* output,
+    int3 dims,
+    float3 worldOrigin,
+    float voxelSize,
+    float3 lightPosition,
+    float shadowStep,
+    float kappa)
+{
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    const int count = dims.x * dims.y * dims.z;
+    if (i >= count) return;
+
+    const int x = i % dims.x;
+    const int y = (i / dims.x) % dims.y;
+    const int z = i / (dims.x * dims.y);
+
+    const float3 start = make_float3(
+        worldOrigin.x + x * voxelSize,
+        worldOrigin.y + y * voxelSize,
+        worldOrigin.z + z * voxelSize);
+
+    const float3 toLight = make_float3(
+        lightPosition.x - start.x,
+        lightPosition.y - start.y,
+        lightPosition.z - start.z);
+
+    const float distance = sqrtf(
+        toLight.x * toLight.x +
+        toLight.y * toLight.y +
+        toLight.z * toLight.z);
+
+    if (distance <= 0.f) {
+        output[i] = 1.f;
+        return;
+    }
+
+    const float3 dir = make_float3(
+        toLight.x / distance,
+        toLight.y / distance,
+        toLight.z / distance);
+
+    auto acc = densityGrid->getAccessor();
+    auto sampler = nanovdb::math::createSampler<1>(acc);
+
+    float T = 0.f;
+
+    for (float s = 0.f; s < distance;) {
+        const float ds = fminf(shadowStep, distance - s);
+        const float3 p = make_float3(
+            start.x + (s + 0.5f * ds) * dir.x,
+            start.y + (s + 0.5f * ds) * dir.y,
+            start.z + (s + 0.5f * ds) * dir.z);
+
+        const float rho = sampleTrilinearWorld(densityGrid, sampler, p);
+
+        // Your density field is negative inside the object.
+        T += kappa * fminf(rho, 0.f) * ds;
+        s += ds;
+    }
+
+    output[i] = T;
+}
+
 
 cudaError_t launch_cuda_raymarch(
     GPUVolume render_data,

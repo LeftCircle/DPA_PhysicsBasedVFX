@@ -14,8 +14,8 @@ namespace lux{
 
 struct GPUVolume{
     const nanovdb::NanoGrid<float>* density;
-    nanovdb::NanoGrid<nanovdb::Vec3f>* color;
-    nanovdb::NanoGrid<float>** shadow_maps;
+    const nanovdb::NanoGrid<nanovdb::Vec3f>* color;
+    const nanovdb::NanoGrid<float>** shadow_maps;
     int shadow_map_count = 0;
 };
 

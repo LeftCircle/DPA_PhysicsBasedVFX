@@ -17,7 +17,7 @@
 #include "obj_reader.h"
 #include "AABB.h"
 
-using namespace lux;
+namespace lux{
 
 TEST_CASE("test openvdb works with hello world example"){
     // Hello world is here: https://www.openvdb.org/documentation/doxygen/codeExamples.html#sHelloWorld
@@ -250,9 +250,8 @@ TEST_CASE("Test write density field to mesh"){
 
     float voxel_size = 0.01;
     float default_val = 999;
-    auto grid = create_float_grid(voxel_size, default_val);
-    auto bounds = world_space_to_bounds(Vector(-1, -1, -1), Vector(1, 1, 1), grid);
-    stamp_isf_to_grid(grid, isf, bounds);
+    auto bounds = world_space_to_bounds(Vector(-1, -1, -1), Vector(1, 1, 1), voxel_size);
+    auto grid = stamp_isf_to_grid(voxel_size, default_val, isf, bounds);
     REQUIRE(grid->activeVoxelCount() > 0);
 
     std::vector<openvdb::Vec3s> points;
@@ -289,3 +288,6 @@ TEST_CASE("Test write density field to mesh"){
     REQUIRE(quads.size() > 0);
 
 }
+
+
+} // end namespace lux
