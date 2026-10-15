@@ -22,7 +22,14 @@ int main(int argc, char** argv){
 	//render_bunny_in_ajax(file_name, "/ajax_bun.exr");
 	//render_humanoid_with_bunnybust(file_name, "/human");
 	//render_bunny_in_ajax(file_name, "/human");
-	cuda_render_bunny(file_name, "/cuda_bunny");
+	//cuda_render_bunny(file_name, "/cuda_bunny");
+	std::vector<CudaPointLight> lights{
+		{make_float3(-3, 3, 1), make_float3(1, 0, 0), 100},
+		{make_float3( 0, 0, -3), make_float3(0, 1, 0), 100},
+		{make_float3( 3, -3, 1), make_float3(0, 0, 1), 100},
+	};
+
+	cuda_render_bunny(file_name, "cuda_wizard_bunny", lights);
 
 	return 0;
 }

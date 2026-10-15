@@ -14,11 +14,25 @@
 namespace lux{
 
 
-struct GPUVolume{
+struct GPUPointLight {
+    float3 position;
+    float3 color;
+    float intensity;
+    const float* shadow_log_transmittance;
+};
+
+struct ShadowMapLayout {
+    int3 dimensions;
+    float3 origin;
+    float voxel_size;
+};
+
+struct GPUVolume {
     const nanovdb::NanoGrid<float>* density;
     const nanovdb::NanoGrid<nanovdb::Vec3f>* color;
-    const nanovdb::NanoGrid<float>** shadow_maps;
-    int shadow_map_count = 0;
+    const GPUPointLight* lights;
+    int light_count;
+    ShadowMapLayout shadow_map;
 };
 
 struct GPUCamera {
@@ -30,56 +44,32 @@ struct GPUCamera {
     float vertical_tan_fov;
 };
 
-// void raymarch_cuda_interface(
-//     float4* output,
-//     int width,
-//     int height,
-//     lux::GPUVolume volume,
-//     GPUCamera cam,
-//     float near_dist,
-//     float far_dist,
-//     float min_step,
-//     float max_step,
-//     float kappa
-// );
+struct RaymarchParameters {
+    int width;
+    int height;
+    float near_distance;
+    float far_distance;
+    float min_step;
+    float max_step;
+    float extinction;
+};
 
 cudaError_t launch_cuda_raymarch(
-    GPUVolume render_data,
+    const GPUVolume& volume,
     float4* output,
-    int width,
-    int height,
-    GPUCamera cam,
-    float near_dist,
-    float far_dist,
-    float min_step,
-    float max_step,
-    float kappa,
+    const GPUCamera& camera,
+    const RaymarchParameters& parameters,
     cudaStream_t stream
 );
 
 cudaError_t launch_cuda_shadowmap(
-    const nanovdb::NanoGrid<float>* device_density_grid,
-    float* out,
-    coordbbox dims,
-    Vector world_origin,
-    float voxel_size,
-    Vector light_position,
-    float shadow_step,
-    float kappa,
+    const nanovdb::NanoGrid<float>* density_grid,
+    float* output_log_transmittance,
+    const ShadowMapLayout& layout,
+    float3 light_position,
+    float step_size,
+    float extinction,
     cudaStream_t stream
-); 
-
-// -------------------------------------------------------------
-// A cuda demo
-// -------------------------------------------------------------
-
-// cudaError_t launchThreshold(
-//     const nanovdb::NanoGrid<float>* deviceGrid,
-//     float* deviceOutput,
-//     nanovdb::Coord first,
-//     int count,
-//     float threshold,
-//     cudaStream_t stream);
-
+);
 
 } // end namespace lux
