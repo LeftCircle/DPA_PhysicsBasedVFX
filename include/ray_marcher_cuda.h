@@ -18,6 +18,7 @@ struct GPUVolume{
     const nanovdb::NanoGrid<float>* density;
     const nanovdb::NanoGrid<nanovdb::Vec3f>* color;
     const nanovdb::NanoGrid<float>** shadow_maps;
+    const float3* light_colors;
     int shadow_map_count = 0;
 };
 
@@ -29,19 +30,6 @@ struct GPUCamera {
     float horizontal_tan_fov;
     float vertical_tan_fov;
 };
-
-// void raymarch_cuda_interface(
-//     float4* output,
-//     int width,
-//     int height,
-//     lux::GPUVolume volume,
-//     GPUCamera cam,
-//     float near_dist,
-//     float far_dist,
-//     float min_step,
-//     float max_step,
-//     float kappa
-// );
 
 cudaError_t launch_cuda_raymarch(
     GPUVolume render_data,

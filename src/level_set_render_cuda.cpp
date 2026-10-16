@@ -84,11 +84,11 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     int height = 1080;
     float near_dist = 6;
     float far_dist = 15;
-    float min_step = 0.001;
+    float min_step = 0.01;
     float max_step = min_step * 5.0;
     float kappa = 3.0;
     float shadow_kappa = 3.0;
-    float shadow_step = 0.001;
+    float shadow_step = 0.01;
     printf("Stamping\n");
     auto bunn = bunny_info();
 
@@ -185,7 +185,6 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
             for (int x = 0; x < dims[0]; ++x) {
                 const int index = (z * dims[1] + y) * dims[0] + x;
                 const float transmission = host_shadow[index];
-                // Keep transmission=1 as the sparse background.
                 if (std::abs(transmission) > 1e-6f) {
                     accessor.setValue(
                         openvdb::Coord(x + lo[0], y + lo[1], z + lo[2]),
@@ -216,11 +215,28 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     ));
     printf("Copy completed\n");
 
+    // Now adding in the same nuber of lights as shadow maps
+    // this should be done through a lights struct that has position and color but oh well
+    const float3 light_colors[] = {make_float3(0.2f, 0.2f, 1.0f)}; 
+    float3* device_light_colors = nullptr;
+    CUDA_CHECK(cudaMalloc(
+        &device_light_colors,
+        sizeof(light_colors)
+    ));
+    CUDA_CHECK(cudaMemcpy(
+        device_light_colors,
+        light_colors,
+        sizeof(light_colors),
+        cudaMemcpyHostToDevice
+    ));
+
     GPUVolume volume{};
     volume.density = reinterpret_cast<const nanovdb::NanoGrid<float>*>(densityBuffer);
     volume.color = reinterpret_cast<const nanovdb::NanoGrid<nanovdb::Vec3f>*>(colorBuffer);
     volume.shadow_maps = device_shadow_pointer_array;
+    volume.light_colors = device_light_colors;
     volume.shadow_map_count = 1;
+
     
     // -----------------------------------------------
     // Getting the cam and image into the GPU
@@ -294,6 +310,7 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     CUDA_CHECK(cudaFree(densityBuffer));
     CUDA_CHECK(cudaFree(colorBuffer));
     CUDA_CHECK(cudaFree(devicePixels));
+    CUDA_CHECK(cudaFree(device_light_colors));
 
     CUDA_CHECK(cudaStreamDestroy(stream));
 }

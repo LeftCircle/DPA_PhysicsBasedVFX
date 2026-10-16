@@ -135,27 +135,14 @@ __global__ void raymarch_kernel(
             auto c = sampleTrilinearWorld(render_data.color, col_sampler, world);
             float3 color = make_float3(c[0], c[1], c[2]);
 
-            // if (kappa == 0.f) {
-            //     radiance.x += color.x;
-            //     radiance.y += color.y;
-            //     radiance.z += color.z;
-            //     transmittance = 0.f;
-            //     break;
-            // }
-
-
             float3 clights = make_float3(0, 0, 0);
             for (int i = 0; i < render_data.shadow_map_count; i++){
                 float dsmt = sampleShadowMap(render_data, i, world);
-                // assuming only a green light for now
-                clights.y += dsmt;
+                auto light_c = render_data.light_colors[i];
+                clights.x += dsmt * light_c.x;
+                clights.y += dsmt * light_c.y;
+                clights.z += dsmt * light_c.z;
             }
-
-            // float dT = std::exp( ds * _kappa * den ); // dens is negative here, so remove - mult;
-            // L += color->eval(X) * (1-dT) * T * _one_over_kappa * clights;
-            // //L += (1-dT) * T * _one_over_kappa * clights;
-            // T *= dT;
-
 
             const float nextT = expf(step * kappa * density);
             const float alpha = 1.f - nextT;
