@@ -100,7 +100,8 @@ GridPtr<float> deep_shadow_map_cuda(
         kappa,
         stream
     );
-    auto shadow_grid = _stamp_dense_vector_to_grid(shadow_vec, sm_bounds, vs);
+    return _stamp_dense_vector_to_grid(shadow_vec, sm_bounds, vs);
+
 }
 
 

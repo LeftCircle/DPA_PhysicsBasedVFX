@@ -12,7 +12,7 @@ namespace lux{
 
 
 void cuda_render_bunny(const std::string& path, const std::string& name);
-void cuda_render_noisy_sphere(const std::string& filename);
+void cuda_render_tests(const std::string& filename);
 
 
 

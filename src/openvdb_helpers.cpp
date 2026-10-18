@@ -108,7 +108,7 @@ GridPtr<float> stamp_isf_to_grid(
 
 GridPtr<Color> stamp_color_to_grid(
     const vspc& col,
-    openvdb::CoordBBox& bounds,
+    const openvdb::CoordBBox& bounds,
     float voxel_size,
     std::string filename
 

@@ -32,7 +32,12 @@ GridPtr<float> stamp_isf_to_grid(
     std::string filename = ""
 );
 
-GridPtr<Color> stamp_color_to_grid(const vspc& a, const openvdb::CoordBBox& bounds, float voxel_size, std::string filename = "");
+GridPtr<Color> stamp_color_to_grid(
+    const vspc& a,
+    const openvdb::CoordBBox& bounds,
+    float voxel_size,
+    std::string filename = ""
+);
 
 // Allows us to create float or Color grids based on 
 // the template specialization in field_interface

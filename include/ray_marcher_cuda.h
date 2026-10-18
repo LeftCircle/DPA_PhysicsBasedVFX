@@ -13,6 +13,9 @@
 
 namespace lux{
 
+inline float3 to_float3(const Vector& v) noexcept {
+    return make_float3(v.x(), v.y(), v.z());
+}
 
 struct GPUVolume{
     const nanovdb::NanoGrid<float>* density;
@@ -23,6 +26,13 @@ struct GPUVolume{
 };
 
 struct GPUCamera {
+    explicit GPUCamera(const Camera& cam)
+        : eye(to_float3(cam.eye())),
+          right(to_float3(cam.right())),
+          up(to_float3(cam.up())),
+          view(to_float3(cam.view())),
+          horizontal_tan_fov(cam.get_htanfov()),
+          vertical_tan_fov(cam.get_vtanfov()) {}
     float3 eye;
     float3 right;
     float3 up;

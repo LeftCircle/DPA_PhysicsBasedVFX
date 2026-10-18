@@ -199,14 +199,7 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     const auto right = cam.right();
     const auto up    = cam.up();
 
-    GPUCamera gpuCam{
-        make_float3(eye.x(), eye.y(), eye.z()),
-        make_float3(right.x(), right.y(), right.z()),
-        make_float3(up.x(), up.y(), up.z()),
-        make_float3(view.x(), view.y(), view.z()),
-        cam.get_htanfov(),
-        cam.get_vtanfov()
-    };
+    GPUCamera gpuCam(cam);
 
     std::vector<float4> pixels(width * height);
     float4* devicePixels = nullptr;
@@ -247,12 +240,6 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     img.oiio_write_to(frame_filename);
     std::cout << "Wrote to " << frame_filename << std::endl;
 
-    // CUDA_CHECK(cudaFree(devicePixels));
-    // CUDA_CHECK(cudaFree(device_shadow_pointer_array));
-    // CUDA_CHECK(cudaFree(densityBuffer));
-    // CUDA_CHECK(cudaFree(colorBuffer));
-    // CUDA_CHECK(cudaStreamDestroy(stream));
-    // No more kernels will use device_shadow_handle.
     device_shadow_handle.buffer().destroy(stream);
     CUDA_CHECK(cudaStreamSynchronize(stream));
 
@@ -266,11 +253,11 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
 }
 
 
-void cuda_render_noisey_sphere(const std::string& filename){
+void cuda_render_tests(const std::string& filename){
     // Just keep as default for now
     RenderSettings rs;
 
-    
+    // Defining the density and color
     auto bunn = bunny_info();
     auto dens = bunn.density;
     auto dens_grid = stamp_isf_to_grid(rs.get_density_vs(), 0.00001f, dens, rs.get_density_bounds());
@@ -284,7 +271,7 @@ void cuda_render_noisey_sphere(const std::string& filename){
     auto density_handle = pack_grid_to_nano(dens_grid, stream);
     auto color_handle = pack_grid_to_nano(col_grid, stream);
 
-    // shadow
+    // Lights and shadow
     PointLight light(Color(0, 1, 0, 0), {0, 3, 0});
     auto shadow_grid = deep_shadow_map_cuda(
         density_handle.deviceGrid<float>(),
@@ -296,10 +283,77 @@ void cuda_render_noisey_sphere(const std::string& filename){
         stream
     );
     auto shadow_handle = pack_grid_to_nano(shadow_grid, stream);
+    const nanovdb::NanoGrid<float>* shadow_array[] = {shadow_handle.deviceGrid<float>()}; 
+    auto device_shadow_array = send_array_to_gpu(shadow_array, 1);
 
-    const float3 light_colors[] = {make_float3(light.color.red(), light.color.blue(), light.color.green())}; 
+    const float3 light_colors[] = {make_float3(light.color.red(), light.color.green(), light.color.blue())}; 
     float3* device_light_colors = send_array_to_gpu(light_colors, 1);
 
+    // GPU volume for ray marching
+    GPUVolume volume{};
+    volume.density = density_handle.deviceGrid<float>();
+    volume.color = color_handle.deviceGrid<nanovdb::Vec3f>();
+    volume.shadow_maps = device_shadow_array;
+    volume.light_colors = device_light_colors;
+    volume.shadow_map_count = 1;
+
+    // -----------------------------------------------
+    // Getting the cam and image into the GPU
+    // ----------------------------------------------------------------
+
+    Camera cam;
+    Vector eye = Vector(0, 0, 10);
+    Vector view = Vector(0, 0, -1);
+    cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+    const auto right = cam.right();
+    const auto up    = cam.up();
+
+    GPUCamera gpuCam(cam);
+
+    std::vector<float4> pixels(rs.width * rs.height);
+    float4* devicePixels = nullptr;
+
+    CUDA_CHECK(cudaMalloc(
+        reinterpret_cast<void**>(&devicePixels),
+        pixels.size() * sizeof(float4))
+    );
+
+    // ----------------------------------------------------------------
+    // The actual render
+    // ----------------------------------------------------------------
+
+    CUDA_CHECK(launch_cuda_raymarch(
+        volume, devicePixels, rs.width, rs.height, gpuCam,
+        rs.near_dist, rs.far_dist, rs.min_step, rs.max_step, rs.kappa, stream));
+
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    CUDA_CHECK(cudaMemcpy(
+        pixels.data(), devicePixels,
+        pixels.size() * sizeof(float4),
+        cudaMemcpyDeviceToHost)
+    );
+
+    // ----------------------------------------------------------------
+    // Saving out the final image
+    // ----------------------------------------------------------------
+
+    ImageData img(rs.width, rs.height, 4);
+    for (int i = 0; i < rs.width * rs.height; ++i) {
+        const int x = i % rs.width;
+        const int y = i / rs.width;
+        ImageData::pixel p = {pixels[i].x, pixels[i].y, pixels[i].z, pixels[i].w};
+        img.set_pixel_values(x, y, p);
+    }
+    
+
+    //std::string frame_filename = path + name + "." + StringFuncs::get_zero_padded_number_string(0, 4) + ".exr";
+    img.oiio_write_to(filename);
+    std::cout << "Wrote to " << filename << std::endl;
+
+    CUDA_CHECK(cudaFree(devicePixels));
+    CUDA_CHECK(cudaFree(device_shadow_array));
+    CUDA_CHECK(cudaFree(device_light_colors));
+    CUDA_CHECK(cudaStreamDestroy(stream));
 
 }
 
