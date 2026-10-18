@@ -295,9 +295,10 @@ void cuda_render_noisey_sphere(const std::string& filename){
         rs.shadow_kappa,
         stream
     );
+    auto shadow_handle = pack_grid_to_nano(*shadow_grid, stream);
 
-
-
+    const float3 light_colors[] = {make_float3(light.color.red(), light.color.blue(), light.color.green())}; 
+    float3* device_light_colors = send_array_to_gpu(light_colors, 1);
 
 
 }
