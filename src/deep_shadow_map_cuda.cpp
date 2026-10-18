@@ -105,7 +105,41 @@ GridPtr<float> deep_shadow_map_cuda(
 }
 
 
+const nanovdb::NanoGrid<float>** create_shadow_maps_and_send_to_gpu(
+    const nanovdb::NanoGrid<float>* density,
+    const std::vector<PointLight>& lights,
+    const RenderSettings& rs,
+    cudaStream_t stream
+){
+    using ShadowHandle = nanovdb::GridHandle<nanovdb::CudaDeviceBuffer>;
+    std::vector<ShadowHandle> shadow_handles;
+    shadow_handles.reserve(lights.size());
+    for (const auto& light : lights){
+        auto grid = deep_shadow_map_cuda(
+            density,
+            rs.get_shadow_bounds(),
+            light.position,
+            rs.get_shadow_vs(),
+            rs.shadow_step,
+            rs.shadow_kappa,
+            stream
+        );
+        shadow_handles.push_back(pack_grid_to_nano(grid, stream));
+    }
+
+    std::vector<const nanovdb::NanoGrid<float>*> host_shadow_ptrs;
+    host_shadow_ptrs.reserve(shadow_handles.size());
+
+    for (auto& handle : shadow_handles) {
+        host_shadow_ptrs.push_back(handle.deviceGrid<float>());
+    }
+
+    return send_array_to_gpu<const nanovdb::NanoGrid<float>*>(
+            host_shadow_ptrs.data(),
+            host_shadow_ptrs.size()
+    );
+}
+
 
 } // end namespace lux
-
 

@@ -263,7 +263,26 @@ void cuda_render_tests(const std::string& filename){
     auto dens_grid = stamp_isf_to_grid(rs.get_density_vs(), 0.00001f, dens, rs.get_density_bounds());
     bunn.color = make_constant<Color>(Color(1, 1, 0.5, 0));
     auto col_grid = stamp_color_to_grid(bunn.color, rs.get_color_bounds(), rs.get_color_vs());
+    Camera cam;
+    Vector eye = Vector(0, 0, 10);
+    Vector view = Vector(0, 0, -1);
+    cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+    std::vector<PointLight> lights = {
+        PointLight({1, 0, 0, 0}, {-3, 0, 0}),
+        PointLight({0, 1, 0, 0}, {3, 0, 0})
+    };
+    cuda_render_frame(rs, dens_grid, col_grid, lights, cam, filename);
 
+}
+
+void cuda_render_frame(
+    const RenderSettings& rs,
+    const GridPtr<float> dens_grid,
+    const GridPtr<Color> col_grid,
+    const std::vector<PointLight>& lights,
+    const Camera& cam,
+    const std::string& filename
+){
     cudaStream_t stream{};
     CUDA_CHECK(cudaStreamCreate(&stream));
 
@@ -271,43 +290,34 @@ void cuda_render_tests(const std::string& filename){
     auto density_handle = pack_grid_to_nano(dens_grid, stream);
     auto color_handle = pack_grid_to_nano(col_grid, stream);
 
-    // Lights and shadow
-    PointLight light(Color(0, 1, 0, 0), {0, 3, 0});
-    auto shadow_grid = deep_shadow_map_cuda(
+    auto device_shadow_array = create_shadow_maps_and_send_to_gpu(
         density_handle.deviceGrid<float>(),
-        rs.get_shadow_bounds(),
-        light.position,
-        rs.get_shadow_vs(),
-        rs.shadow_step,
-        rs.shadow_kappa,
-        stream
+        lights, rs, stream
     );
-    auto shadow_handle = pack_grid_to_nano(shadow_grid, stream);
-    const nanovdb::NanoGrid<float>* shadow_array[] = {shadow_handle.deviceGrid<float>()}; 
-    auto device_shadow_array = send_array_to_gpu(shadow_array, 1);
+    
+    std::vector<float3> host_light_colors;
+    host_light_colors.reserve(lights.size());
 
-    const float3 light_colors[] = {make_float3(light.color.red(), light.color.green(), light.color.blue())}; 
-    float3* device_light_colors = send_array_to_gpu(light_colors, 1);
+    for (const auto& light : lights) {
+        host_light_colors.push_back(make_float3(
+            light.color.red(),
+            light.color.green(),
+            light.color.blue()
+        ));
+    }
+    float3* device_light_colors = send_array_to_gpu(host_light_colors.data(), host_light_colors.size());
 
     // GPU volume for ray marching
     GPUVolume volume{};
     volume.density = density_handle.deviceGrid<float>();
     volume.color = color_handle.deviceGrid<nanovdb::Vec3f>();
     volume.shadow_maps = device_shadow_array;
+    volume.shadow_map_count = lights.size();
     volume.light_colors = device_light_colors;
-    volume.shadow_map_count = 1;
 
     // -----------------------------------------------
     // Getting the cam and image into the GPU
     // ----------------------------------------------------------------
-
-    Camera cam;
-    Vector eye = Vector(0, 0, 10);
-    Vector view = Vector(0, 0, -1);
-    cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
-    const auto right = cam.right();
-    const auto up    = cam.up();
-
     GPUCamera gpuCam(cam);
 
     std::vector<float4> pixels(rs.width * rs.height);
@@ -344,8 +354,6 @@ void cuda_render_tests(const std::string& filename){
         ImageData::pixel p = {pixels[i].x, pixels[i].y, pixels[i].z, pixels[i].w};
         img.set_pixel_values(x, y, p);
     }
-    
-
     //std::string frame_filename = path + name + "." + StringFuncs::get_zero_padded_number_string(0, 4) + ".exr";
     img.oiio_write_to(filename);
     std::cout << "Wrote to " << filename << std::endl;
@@ -354,7 +362,6 @@ void cuda_render_tests(const std::string& filename){
     CUDA_CHECK(cudaFree(device_shadow_array));
     CUDA_CHECK(cudaFree(device_light_colors));
     CUDA_CHECK(cudaStreamDestroy(stream));
-
 }
 
 } // end namespace lux

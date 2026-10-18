@@ -38,28 +38,6 @@ auto pack_grid_to_nano(const GridPtr& grid, cudaStream_t stream) {
     return handle;
 }
 
-// auto pack_grid_test(const openvdb::FloatGrid::Ptr& grid, cudaStream_t stream){
-//     auto handle = nanovdb::tools::createNanoGrid<
-//         decltype(grid), float, nanovdb::CudaDeviceBuffer
-//     >(*grid);
-// }
-
-// template<typename T>
-// auto send_array_to_gpu(const T* start, size_t elements){  
-//     const float3 light_colors[] = {make_float3(0.2f, 0.2f, 1.0f)}; 
-//     float3* device_light_colors = nullptr;
-//     CUDA_CHECK(cudaMalloc(
-//         &device_light_colors,
-//         sizeof(light_colors)
-//     ));
-//     CUDA_CHECK(cudaMemcpy(
-//         device_light_colors,
-//         light_colors,
-//         sizeof(light_colors),
-//         cudaMemcpyHostToDevice
-//     ));
-// }
-
 template <typename T>
 T* send_array_to_gpu(const T* start, size_t elements) {
     static_assert(std::is_trivially_copyable<T>::value, "T must be trivially copyable for a raw CUDA copy");

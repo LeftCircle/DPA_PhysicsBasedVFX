@@ -1,8 +1,12 @@
 #pragma once
 
+#include <vector>
+
 #include "cuda_helpers.h"
 #include "ray_marcher_cuda.h"
 #include "openvdb_helpers.h"
+#include "lights.h"
+#include "render_settings.h"
 
 namespace lux{
 
@@ -30,6 +34,13 @@ GridPtr<float> deep_shadow_map_cuda(
     float vs,
     float ray_step_size,
     float kappa,
+    cudaStream_t stream
+);
+
+const nanovdb::NanoGrid<float>** create_shadow_maps_and_send_to_gpu(
+    const nanovdb::NanoGrid<float>* density,
+    const std::vector<PointLight>& lights,
+    const RenderSettings& rs,
     cudaStream_t stream
 );
 
