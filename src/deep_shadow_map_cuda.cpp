@@ -104,7 +104,6 @@ GridPtr<float> deep_shadow_map_cuda(
 
 }
 
-
 const nanovdb::NanoGrid<float>** create_shadow_maps_and_send_to_gpu(
     const nanovdb::NanoGrid<float>* density,
     const std::vector<PointLight>& lights,

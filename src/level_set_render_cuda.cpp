@@ -260,6 +260,14 @@ void cuda_render_tests(const std::string& filename){
     // Defining the density and color
     auto bunn = bunny_info();
     auto dens = bunn.density;
+
+    // Try stamping in a ton of faded noise
+    dens = isf_sphere({}, 1.5);
+    auto noise = make_fspn(0.5, 3, {}, 2, 1.5);
+    auto fade = make_fade_factor({}, 0.1, 1.5);
+    dens = noise * fade;
+
+    //dens = dens + (make_fspn(3, 3, {}, 3, 1.5) * mask(dens));
     auto dens_grid = stamp_isf_to_grid(rs.get_density_vs(), 0.00001f, dens, rs.get_density_bounds());
     bunn.color = make_constant<Color>(Color(1, 1, 0.5, 0));
     auto col_grid = stamp_color_to_grid(bunn.color, rs.get_color_bounds(), rs.get_color_vs());
