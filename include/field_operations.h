@@ -11,23 +11,24 @@
 
 namespace lux{
 
-template <typename T>
+template <typename T, typename Func, typename GradFunc = std::nullptr_t>
 class FunctionField : public Volume<T> {
 public:
 	using typename Volume<T>::volumeDataType;
 	using typename Volume<T>::volumeGradType;
-	using Func = std::function<volumeDataType(const Vector&)>;
-	using GradFunc = std::function<volumeGradType(const Vector&)>;
+	// using Func = std::function<volumeDataType(const Vector&)>;
+	// using GradFunc = std::function<volumeGradType(const Vector&)>;
 
-	explicit FunctionField(Func function, GradFunc grad_func = {}) :
-	 	_function(std::move(function)), _grad_func(std::move(grad_func)) {}
+	template <typename E, typename G = GradFunc>
+	FunctionField(E&& function, G&& grad_func = {}) :
+	 	_function(std::forward<E>(function)), _grad_func(std::forward<G>(grad_func)) {}
 	
 	const volumeDataType eval(const Vector& p) const override { return _function(p); }
 	const volumeGradType grad(const Vector&p) const override {
-		 if (_grad_func){
-			return _grad_func(p);
-		} else {
+		if constexpr (std::is_same_v<GradFunc, std::nullptr_t>){
 			return Volume<T>::grad(p);
+		} else {
+			return _grad_func(p);
 		}
 	}
 

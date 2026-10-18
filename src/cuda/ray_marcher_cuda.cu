@@ -262,9 +262,9 @@ cudaError_t launch_cuda_shadowmap(
 ){
     constexpr int threads = 128;
 
-    auto dim = dims.getEnd() - dims.getStart();
+    auto dim = dims.dim();
     auto int3dim = make_int3(dim[0], dim[1], dim[2]);
-    const int count = dim[0] * dim[1] * dim[2];
+    const int count = (dim[0]) * (dim[1]) * (dim[2]);
     const int blocks = (count + threads - 1) / threads;
     
     const std::size_t shadowBytes = static_cast<std::size_t>(count * sizeof(float));

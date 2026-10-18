@@ -98,7 +98,7 @@ GridPtr<float> stamp_isf_to_grid(
     float voxel_size,
     float def_val,
     const vspf& a,
-    coordbbox& bounds,
+    const coordbbox& bounds,
     std::string filename
 ){
     auto func = [a](const Vector& p){ return a->eval(p); };

@@ -4,11 +4,14 @@
 #include <algorithm>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/Interpolation.h>
+#include <utility>
+#include <type_traits>
 
 #include "volume.h"
 #include "field_operations.h"
 #include "implicit_fields.h"
 #include "constructive_solid_geometry.h"
+#include "noise_fields.h"
 
 namespace lux{
 
@@ -19,12 +22,19 @@ namespace lux{
 
 using vspf = VolumeSPtr<float>;
 
-template<typename T>
+template<typename T, typename Eval, typename Grad = std::nullptr_t>
 VolumeSPtr<T> funcfield(
-    std::function<T(const Vector&)> eval_func,
-    std::function<typename Volume<T>::volumeGradType(const Vector&)> grad_func = {}
+    Eval&& eval_func,
+    Grad&& grad_func = {}
 ){
-    return std::make_shared<FunctionField<T>>(std::move(eval_func), std::move(grad_func));
+    // Converts lhv to be copied instead of referenced.
+    // Can save time by passing large caputre lambdas as rhv
+    using EvalType = std::decay_t<Eval>;
+    using GradType = std::decay_t<Grad>;
+    return std::make_shared<FunctionField<T, EvalType, GradType>>(
+        std::forward<Eval>(eval_func),
+        std::forward<Grad>(grad_func)
+    );
 }
 
 template<typename T, typename U>

@@ -3,6 +3,7 @@
 
 #include <cuda_runtime.h>
 #include <nanovdb/tools/CreateNanoGrid.h>
+#include <nanovdb/cuda/DeviceBuffer.h>
 
 #include <stdexcept>
 #include <vector>
@@ -22,54 +23,6 @@ namespace lux{
             throw std::runtime_error(cudaGetErrorString(err));\
     } while (0)
 
-// std::vector<float> thresholdLine(
-//     const openvdb::FloatGrid& grid,
-//     nanovdb::Coord first,
-//     int count,
-//     float threshold)
-// {
-//     // Convert the CPU OpenVDB grid to a NanoVDB grid in host memory.
-//     auto hostHandle = nanovdb::tools::createNanoGrid(grid);
-//     if (!hostHandle.grid<float>()){
-//         throw std::runtime_error("NanoVDB conversion did not produce a float grid");
-//     }
-//     // Copy NanoVDB's buffer to device memory.
-//     cudaStream_t stream{};
-//     CUDA_CHECK(cudaStreamCreate(&stream));
-
-//     auto deviceHandle = nanovdb::cuda::copyTo<nanovdb::cuda::Buffer<std::byte>>(hostHandle, stream);
-
-//     const auto* deviceGrid = deviceHandle.deviceGrid<float>();
-//     if (!deviceGrid){
-//         throw std::runtime_error("Could not get the device NanoVDB grid");
-//     }
-
-//     float* deviceOutput = nullptr;
-//     CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&deviceOutput), count * sizeof(float)));
-
-//     // Actually launch the cuda calculation
-//     CUDA_CHECK(launchThreshold(
-//         deviceGrid, deviceOutput, first, count, threshold, stream
-//     ));
-
-//     std::vector<float> result(count);
-
-//     // Wait for the kernel before copying results or releasing the grid handle.
-//     CUDA_CHECK(cudaStreamSynchronize(stream));
-//     CUDA_CHECK(
-//         cudaMemcpy(
-//             result.data(),
-//             deviceOutput,
-//             count * sizeof(float),
-//             cudaMemcpyDeviceToHost
-//         )
-//     );
-
-//     CUDA_CHECK(cudaFree(deviceOutput));
-//     CUDA_CHECK(cudaStreamDestroy(stream));
-
-//     return result;
-// }
 
 // -------------------------------------------------------------
 // Launching cuda render code
@@ -114,7 +67,6 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
 
     const std::size_t densityBytes = static_cast<std::size_t>(densityNano.size());
     const std::size_t colorBytes = static_cast<std::size_t>(colorNano.size());
-
     void* densityBuffer = nullptr;
     CUDA_CHECK(cudaMalloc(&densityBuffer, densityBytes));
     CUDA_CHECK(cudaMemcpyAsync(
@@ -139,9 +91,7 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     // ----------------------------------------------------------------
     // Shadow map packing
     // ----------------------------------------------------------------
-    // let's make the shadow map as big as the color map for now
 
-    auto dims = sm_bounds.getEnd() - sm_bounds.getStart();
     const auto lo = sm_bounds.getStart();
     const auto hi = sm_bounds.getEnd(); // inclusive
 
@@ -150,7 +100,7 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     const int nz = hi[2] - lo[2] + 1;
 
     const float3 origin = make_float3(lo[0] * sm_vs, lo[1] * sm_vs, lo[2] * sm_vs);
-    const int count = dims[0] * dims[1] * dims[2];
+    const int count = nx * ny * nz;
     const std::size_t shadowBytes = static_cast<std::size_t>(count * sizeof(float));
     float* shadowBuffer = nullptr;
     CUDA_CHECK(cudaMalloc(&shadowBuffer, shadowBytes));
@@ -180,10 +130,10 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     
     auto shadow_grid = create_float_grid(sm_vs, 0.0f);
     auto accessor = shadow_grid->getAccessor();
-    for (int z = 0; z < dims[2]; ++z) {
-        for (int y = 0; y < dims[1]; ++y) {
-            for (int x = 0; x < dims[0]; ++x) {
-                const int index = (z * dims[1] + y) * dims[0] + x;
+    for (int z = 0; z < nz; ++z) {
+        for (int y = 0; y < ny; ++y) {
+            for (int x = 0; x < nx; ++x) {
+                const int index = (z * ny + y) * nx + x;
                 const float transmission = host_shadow[index];
                 if (std::abs(transmission) > 1e-6f) {
                     accessor.setValue(
@@ -313,6 +263,43 @@ void cuda_render_bunny(const std::string& path, const std::string& name){
     CUDA_CHECK(cudaFree(device_light_colors));
 
     CUDA_CHECK(cudaStreamDestroy(stream));
+}
+
+
+void cuda_render_noisey_sphere(const std::string& filename){
+    // Just keep as default for now
+    RenderSettings rs;
+
+    
+    auto bunn = bunny_info();
+    auto dens = bunn.density;
+    auto dens_grid = stamp_isf_to_grid(rs.get_density_vs(), 0.00001f, dens, rs.get_density_bounds());
+    bunn.color = make_constant<Color>(Color(1, 1, 0.5, 0));
+    auto col_grid = stamp_color_to_grid(bunn.color, rs.get_color_bounds(), rs.get_color_vs());
+
+    cudaStream_t stream{};
+    CUDA_CHECK(cudaStreamCreate(&stream));
+
+    // density and color packing
+    auto density_handle = pack_grid_to_nano(*dens_grid, stream);
+    auto color_handle = pack_grid_to_nano(*col_grid, stream);
+
+    // shadow
+    PointLight light(Color(0, 1, 0, 0), {0, 3, 0});
+    auto shadow_grid = (
+        density_handle,
+        rs.get_shadow_bounds(),
+        light.position,
+        rs.get_shadow_vs(),
+        rs.shadow_step,
+        rs.shadow_kappa,
+        stream
+    );
+
+
+
+
+
 }
 
 } // end namespace lux

@@ -5,21 +5,22 @@
 #include <iostream>
 #include <memory>
 
+#include <openvdb/openvdb.h>
+#include <openvdb/tools/MeshToVolume.h>
+#include <openvdb/tools/VolumeToMesh.h>
+
 #include "field_interface.h"
 #include "ray_marcher.h"
 #include "image_data.h"
 #include "command_line_parser.h"
 
-
+#include "cuda_helpers.h"
 #include "openvdb_helpers.h"
 #include "humanoid.h"
 
 
 #include "string_funcs.h"
 
-#include <openvdb/openvdb.h>
-#include <openvdb/tools/MeshToVolume.h>
-#include <openvdb/tools/VolumeToMesh.h>
 
 #include "obj_reader.h"
 
