@@ -16,12 +16,12 @@ namespace lux{
 // -------------------------------------------------------------
 
 
-#define CUDA_CHECK(call)                                      \
-    do {                                                      \
-        cudaError_t err = (call);                             \
-        if (err != cudaSuccess)                               \
-            throw std::runtime_error(cudaGetErrorString(err));\
-    } while (0)
+// #define CUDA_CHECK(call)                                      \
+//     do {                                                      \
+//         cudaError_t err = (call);                             \
+//         if (err != cudaSuccess)                               \
+//             throw std::runtime_error(cudaGetErrorString(err));\
+//     } while (0)
 
 
 // -------------------------------------------------------------
@@ -281,13 +281,13 @@ void cuda_render_noisey_sphere(const std::string& filename){
     CUDA_CHECK(cudaStreamCreate(&stream));
 
     // density and color packing
-    auto density_handle = pack_grid_to_nano(*dens_grid, stream);
-    auto color_handle = pack_grid_to_nano(*col_grid, stream);
+    auto density_handle = pack_grid_to_nano(dens_grid, stream);
+    auto color_handle = pack_grid_to_nano(col_grid, stream);
 
     // shadow
     PointLight light(Color(0, 1, 0, 0), {0, 3, 0});
-    auto shadow_grid = (
-        density_handle,
+    auto shadow_grid = deep_shadow_map_cuda(
+        density_handle.deviceGrid<float>(),
         rs.get_shadow_bounds(),
         light.position,
         rs.get_shadow_vs(),
@@ -295,7 +295,7 @@ void cuda_render_noisey_sphere(const std::string& filename){
         rs.shadow_kappa,
         stream
     );
-    auto shadow_handle = pack_grid_to_nano(*shadow_grid, stream);
+    auto shadow_handle = pack_grid_to_nano(shadow_grid, stream);
 
     const float3 light_colors[] = {make_float3(light.color.red(), light.color.blue(), light.color.green())}; 
     float3* device_light_colors = send_array_to_gpu(light_colors, 1);

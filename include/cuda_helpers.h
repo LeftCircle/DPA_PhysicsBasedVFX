@@ -28,14 +28,21 @@ template <typename GridPtr>
 auto pack_grid_to_nano(const GridPtr& grid, cudaStream_t stream) {
     using GridT = std::remove_cv_t<std::remove_reference_t<decltype(*grid)>>;
     using ValueT = typename GridT::ValueType;
+    using NanoValueT = typename nanovdb::tools::MapToNano<ValueT>::type;
 
     auto handle = nanovdb::tools::createNanoGrid<
-            GridT, ValueT, nanovdb::CudaDeviceBuffer
+            GridT, NanoValueT, nanovdb::CudaDeviceBuffer
             >(*grid);
 
     handle.deviceUpload(stream, /*sync=*/false);
     return handle;
 }
+
+// auto pack_grid_test(const openvdb::FloatGrid::Ptr& grid, cudaStream_t stream){
+//     auto handle = nanovdb::tools::createNanoGrid<
+//         decltype(grid), float, nanovdb::CudaDeviceBuffer
+//     >(*grid);
+// }
 
 // template<typename T>
 // auto send_array_to_gpu(const T* start, size_t elements){  
@@ -68,3 +75,5 @@ T* send_array_to_gpu(const T* start, size_t elements) {
     ));
     return device_data;
 }
+
+} // namespace lux

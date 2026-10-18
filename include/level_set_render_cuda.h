@@ -6,6 +6,7 @@
 #include "render_settings.h"
 #include "deep_shadow_map_cuda.h"
 #include "lights.h"
+#include "cuda_helpers.h"
 
 namespace lux{
 

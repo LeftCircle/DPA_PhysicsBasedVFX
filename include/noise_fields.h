@@ -8,7 +8,7 @@
 namespace lux{
 
 
-vspf make_fspn(
+inline vspf make_fspn(
     float r, // roughness
     float octaves,
     const Vector& translation,
@@ -27,7 +27,6 @@ vspf make_fspn(
 };
 
 }
-
 
 
 
