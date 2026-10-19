@@ -6,9 +6,11 @@
 namespace lux{
 
 struct PointLight{
-    PointLight(Color _color, Vector _pos) : color(_color), position(_pos) {}
+    PointLight(Color _color, Vector _pos, float _kappa = 1.0) : 
+        color(_color), position(_pos), kappa(_kappa) {}
     Color color;
     Vector position;
+    float kappa;
 };
 
 

@@ -120,7 +120,7 @@ const nanovdb::NanoGrid<float>** create_shadow_maps_and_send_to_gpu(
             light.position,
             rs.get_shadow_vs(),
             rs.shadow_step,
-            rs.shadow_kappa,
+            light.kappa,
             stream
         );
         shadow_handles.push_back(pack_grid_to_nano(grid, stream));

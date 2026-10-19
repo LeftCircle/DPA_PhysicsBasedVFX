@@ -50,6 +50,7 @@ public:
     float kappa = 3.0;
     float shadow_kappa = 3.0;
     float shadow_step = 0.01;
+    float cam_dist = 10.0;
 
 private:
     float _density_vs = 0.025;

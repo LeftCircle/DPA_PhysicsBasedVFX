@@ -4,14 +4,18 @@
 //#include <nanovdb/tools/CreateNanoGrid.h> // converter from OpenVDB to NanoVDB (includes NanoVDB.h and GridManager.h)
 #include <cstddef>
 #include <cuda_runtime.h>
+#include <curand_kernel.h>
 #include <nanovdb/NanoVDB.h>
 #include <nanovdb/cuda/Buffer.h>
 #include <nanovdb/cuda/HandleStorage.h>
 
 #include "Camera.h"
-#include "ray_marcher.h"
+#include "openvdb_helpers.h"
+//#include "ray_marcher.h"
 
 namespace lux{
+
+using RngState = curandStatePhilox4_32_10_t;
 
 inline float3 to_float3(const Vector& v) noexcept {
     return make_float3(v.x(), v.y(), v.z());
@@ -21,7 +25,7 @@ struct GPUVolume{
     const nanovdb::NanoGrid<float>* density;
     const nanovdb::NanoGrid<nanovdb::Vec3f>* color;
     const nanovdb::NanoGrid<float>** shadow_maps;
-    const float3* light_colors;
+    const float4* light_colors; // includes kappa
     int shadow_map_count = 0;
 };
 
@@ -52,6 +56,7 @@ cudaError_t launch_cuda_raymarch(
     float min_step,
     float max_step,
     float kappa,
+    RngState* rng_states,
     cudaStream_t stream
 );
 
@@ -66,6 +71,15 @@ cudaError_t launch_cuda_shadowmap(
     float kappa,
     cudaStream_t stream
 ); 
+
+cudaError_t create_rng_states(
+    RngState** states,
+    int pixel_count,
+    unsigned long long seed,
+    cudaStream_t stream
+);
+
+cudaError_t destroy_rng_states(RngState* states);
 
 // -------------------------------------------------------------
 // A cuda demo

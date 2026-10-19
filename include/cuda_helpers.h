@@ -54,4 +54,26 @@ T* send_array_to_gpu(const T* start, size_t elements) {
     return device_data;
 }
 
+inline void log_cuda_memory(const char* where)
+{
+    std::size_t free_bytes = 0;
+    std::size_t total_bytes = 0;
+
+    const cudaError_t err = cudaMemGetInfo(&free_bytes, &total_bytes);
+    if (err != cudaSuccess) {
+        std::cerr << "[CUDA memory] " << where << ": "
+                  << cudaGetErrorString(err) << '\n';
+        return;
+    }
+
+    constexpr double bytes_per_mib = 1024.0 * 1024.0;
+    const double free_mib = free_bytes / bytes_per_mib;
+    const double total_mib = total_bytes / bytes_per_mib;
+
+    std::cerr << "[CUDA memory] " << where
+              << ": free " << free_mib << " MiB / "
+              << total_mib << " MiB"
+              << " (used " << total_mib - free_mib << " MiB)\n";
+}
+
 } // namespace lux

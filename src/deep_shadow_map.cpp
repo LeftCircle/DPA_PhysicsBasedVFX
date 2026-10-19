@@ -4,20 +4,7 @@
 
 namespace lux{
 
-
-
-vspf make_deep_shadow_map(
-    vspf density_field,
-    float voxel_size,
-    const coordbbox& bounds,
-    const PointLight& light,
-    float step_size,
-    float kappa
-){
-    return make_deep_shadow_map_parallel(density_field, voxel_size, bounds, light, step_size, kappa);
-}
-
-vspf make_deep_shadow_map_parallel(
+GridPtr<float> make_dsm_grid(
     const vspf density_field,
     float voxel_size,
     const coordbbox& bounds,
@@ -29,7 +16,7 @@ vspf make_deep_shadow_map_parallel(
     auto stamp_func = [density_field](const Vector& p){ return density_field->eval(p); };
     auto cond = [](const float val){ return val < 0; };
     
-    auto grid = stamp_grid_parallel<float>(voxel_size, 0.0f, stamp_func, cond, bounds);
+    auto grid = stamp_grid_parallel<float>(voxel_size, 0.00001f, stamp_func, cond, bounds);
 
     // Grid should now have active cells can do a parallel for each now
     auto eval_func = [density_field, step_size, kappa](const Vector& p){ 
@@ -48,9 +35,43 @@ vspf make_deep_shadow_map_parallel(
     // Now run the computation
     openvdb::tools::foreach(grid->beginValueOn(), op);
 
+   return grid;
+}
+
+vspf make_deep_shadow_map(
+    vspf density_field,
+    float voxel_size,
+    const coordbbox& bounds,
+    const PointLight& light,
+    float step_size,
+    float kappa
+){
+    return make_deep_shadow_map_parallel(density_field, voxel_size, bounds, light, step_size, kappa);
+}
+
+vspf make_deep_shadow_map(const GridPtr<float> grid){
+    return exp(make_grid_field<float>(grid));
+}
+
+vspf make_deep_shadow_map_parallel(
+    const vspf density_field,
+    float voxel_size,
+    const coordbbox& bounds,
+    const PointLight& light,
+    float step_size,
+    float kappa
+){
+    auto grid = make_dsm_grid(
+        density_field,
+        voxel_size,
+        bounds,
+        light,
+        step_size,
+        kappa
+    );
+
     // transmissivty of shadowgrid
-    vspf TL = exp(make_grid_field<float>(grid));
-    return TL;
+    return make_deep_shadow_map(grid);
 }
 
 

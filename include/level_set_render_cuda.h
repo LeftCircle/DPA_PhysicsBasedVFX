@@ -13,13 +13,31 @@ namespace lux{
 
 void cuda_render_bunny(const std::string& path, const std::string& name);
 void cuda_render_tests(const std::string& filename);
+void profile_cuda();
 void cuda_render_frame(
     const RenderSettings& rs,
     const GridPtr<float> dens_grid,
     const GridPtr<Color> col_grid,
     const std::vector<PointLight>& lights,
     const Camera& cam,
-    const std::string& filename
+    const std::string& filename,
+    const std::string label = ""
+);
+
+void cuda_render_frame_with_dsm(
+    const RenderSettings& rs,
+    const GridPtr<float> dens_grid,
+    const GridPtr<Color> col_grid,
+    const std::vector<GridPtr<float>>& shadow_grids,
+    const std::vector<PointLight>& lights,
+    const Camera& cam,
+    const std::string& filename,
+    const std::string label = ""
+);
+
+void render_wedges(
+    std::string path,
+    std::string name
 );
 
 

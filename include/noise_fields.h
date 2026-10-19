@@ -3,6 +3,7 @@
 #include <cassert>
 #include <algorithm>
 
+#include "perlin.h"
 #include "volume.h"
 #include "fractal_sum_noise.h"
 #include "db_perlin.h"

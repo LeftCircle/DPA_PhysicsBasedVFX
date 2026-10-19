@@ -1,11 +1,15 @@
 #include "ray_marcher_cuda.h"
 #include <nanovdb/math/SampleFromVoxels.h>
 
-
 namespace lux{
 
-using v3f = nanovdb::math::Vec3f;
 
+// -----------------------------------------------------------------------------------------
+//  Helper functions
+// -----------------------------------------------------------------------------------------
+
+using v3f = nanovdb::math::Vec3f;
+using RngState = curandStatePhilox4_32_10_t;
 
 struct CudaRay {
     float3 origin;
@@ -45,6 +49,53 @@ __device__ typename GridT::ValueType sampleTrilinearWorld(
     return sampler.sample(ijkF, values); // interpolate them based on fractional part
 }
 
+__global__ void setup_rng_kernel(
+    RngState* states,
+    int pixel_count,
+    unsigned long long seed)
+{
+    const int id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id < pixel_count) {
+        curand_init(seed, id, 0, &states[id]);
+    }
+}
+
+cudaError_t create_rng_states(
+    RngState** states,
+    int pixel_count,
+    unsigned long long seed,
+    cudaStream_t stream)
+{
+    if (!states || pixel_count <= 0) return cudaErrorInvalidValue;
+    *states = nullptr;
+
+    auto err = cudaMalloc(
+        reinterpret_cast<void**>(states),
+        static_cast<size_t>(pixel_count) * sizeof(RngState));
+    if (err != cudaSuccess) return err;
+
+    constexpr int threads = 256;
+    const int blocks = (pixel_count + threads - 1) / threads;
+
+    setup_rng_kernel<<<blocks, threads, 0, stream>>>(
+        *states, pixel_count, seed);
+
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        cudaFree(*states);
+        *states = nullptr;
+    }
+    return err;
+}
+
+cudaError_t destroy_rng_states(RngState* states)
+{
+    return states ? cudaFree(states) : cudaSuccess;
+}
+
+// -----------------------------------------------------------------------------------------
+//  Shadow and render
+// -----------------------------------------------------------------------------------------
 
 __device__ float sampleShadowMap(
     const GPUVolume& volume,
@@ -73,11 +124,15 @@ __global__ void raymarch_kernel(
     float far_dist,
     float min_step,
     float max_step,
-    float kappa
+    float kappa,
+    RngState* rng_states
 ){
     const int pixel = blockIdx.x * blockDim.x + threadIdx.x;
     const int pixel_count = width * height;
     if (pixel >= pixel_count) return;
+
+    RngState rng = rng_states[pixel];
+
 
     if (!render_data.density) {
         output[pixel] = make_float4(0.f, 0.f, 0.f, 0.f);
@@ -118,10 +173,11 @@ __global__ void raymarch_kernel(
     auto dens_sampler = nanovdb::math::createSampler<1>(dens_acc);
     auto color_acc = render_data.color->getAccessor();
     auto col_sampler = nanovdb::math::createSampler<1>(color_acc);
-
-    for (float t = near_dist;
-         t < far_dist && transmittance > 1e-3f;
-         t += step)
+    // only randomize the first step
+    const float rand_unif = curand_uniform(&rng);
+    const float randomStep = min_step + rand_unif * (max_step - min_step);
+    const float start = near_dist + randomStep;
+    for (float t = start; t < far_dist && transmittance > 1e-3f; t += step)
     {
         const float3 world = make_float3(
             cam.eye.x + t * dir.x,
@@ -152,6 +208,7 @@ __global__ void raymarch_kernel(
             transmittance *= nextT;
         }
     }
+    rng_states[pixel] = rng;
 
     output[pixel] = make_float4(
         radiance.x, radiance.y, radiance.z, 1.f - transmittance);
@@ -234,6 +291,7 @@ cudaError_t launch_cuda_raymarch(
     float min_step,
     float max_step,
     float kappa,
+    RngState* rng_states,
     cudaStream_t stream
 ){
     if (width <= 0 || height <= 0) return cudaErrorInvalidValue;
@@ -244,7 +302,7 @@ cudaError_t launch_cuda_raymarch(
 
     raymarch_kernel<<<blocks, threads, 0, stream>>>(
         render_data, output, width, height, cam,
-        near_dist, far_dist, min_step, max_step, kappa);
+        near_dist, far_dist, min_step, max_step, kappa, rng_states);
 
     return cudaGetLastError();
 }

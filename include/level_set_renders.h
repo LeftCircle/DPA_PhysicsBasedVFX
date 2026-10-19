@@ -17,7 +17,7 @@
 #include "cuda_helpers.h"
 #include "openvdb_helpers.h"
 #include "humanoid.h"
-
+#include "render_settings.h"
 
 #include "string_funcs.h"
 
@@ -67,6 +67,17 @@ void render_turnable(
     float sm_kappa,
     float kappa,
     float t = 0
+);
+
+void cpu_render_frame(
+    const RenderSettings& rs,
+    const GridPtr<float> dens_grid,
+    const GridPtr<Color> col_grid,
+    const std::vector<GridPtr<float>>& shadow_grids,
+    const std::vector<PointLight>& lights,
+    const Camera& cam,
+    const std::string& filename,
+    const std::string& label = ""
 );
 
 

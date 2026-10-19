@@ -376,5 +376,96 @@ void render_turnable(
     }
 }
 
+void cpu_render_frame(
+    const RenderSettings& rs,
+    const GridPtr<float> dens_grid,
+    const GridPtr<Color> col_grid,
+    const std::vector<GridPtr<float>>& shadow_grids,
+    const std::vector<PointLight>& lights,
+    const Camera& cam,
+    const std::string& filename,
+    const std::string& label
+){
+    if (shadow_grids.size() != lights.size()) {
+        throw std::invalid_argument(
+            "Expected one shadow grid per light");
+    }
+
+    RayMarcher rm;
+    rm.set_min_ds(rs.min_step);
+    rm.set_max_ds(rs.max_step);
+    rm.set_snear(rs.near_dist);
+    rm.set_sfar(rs.far_dist);
+    rm.set_exticntion_coefficient(rs.kappa);
+    rm.set_Tmin(0.001f); // Match the value used in render_turnable.
+
+    auto density_field = make_grid_field<float>(dens_grid);
+    auto color_field = make_grid_field<Color>(col_grid);
+
+
+    // ------------------------------------------------------------------
+    // Adding the level set to the raymarcher
+    // ------------------------------------------------------------------
+    float default_val = 999;
+    std::cout << "stamping" << std::endl;
+
+    std::vector<openvdb::Vec3s> points;
+    std::vector<openvdb::Vec3I> triangles;
+    std::vector<openvdb::Vec4I> quads;
+
+    openvdb::tools::volumeToMesh(*dens_grid, points, triangles, quads);
+
+    // std::ofstream output(path + name + ".obj");
+
+    // for (const auto& point : points) {
+    //     output << "v "
+    //         << point.x() << " "
+    //         << point.y() << " "
+    //         << point.z() << "\n";
+    // }
+
+    // for (const auto& triangle : triangles) {
+    //     output << "f "
+    //         << triangle[0] + 1 << " "
+    //         << triangle[1] + 1 << " "
+    //         << triangle[2] + 1 << "\n";
+    // }
+
+    // for (const auto& quad : quads) {
+    //     output << "f "
+    //         << quad[0] + 1 << " "
+    //         << quad[1] + 1 << " "
+    //         << quad[2] + 1 << " "
+    //         << quad[3] + 1 << "\n";
+    // }
+
+    // std::cout << "obj written" << std::endl;
+
+    auto transform = openvdb::math::Transform::createLinearTransform(rs.get_density_vs());
+    float hw = rs.model_halfsize;
+    printf("Making level set\n");
+    auto levelset = openvdb::tools::meshToLevelSet<openvdb::FloatGrid>(*transform, points, triangles, quads, hw);
+    auto levelset_bounds = levelset->evalActiveVoxelBoundingBox();
+    printf("Level set made\n");
+    rm.add_levelset(levelset);
+
+
+
+    // Keep the field wrappers alive for the duration of the render.
+    std::vector<vspf> shadow_fields;
+    shadow_fields.reserve(shadow_grids.size());
+
+    for (std::size_t i = 0; i < shadow_grids.size(); ++i) {
+        shadow_fields.push_back(make_deep_shadow_map(shadow_grids[i]));
+        rm.add_shadow_map(shadow_fields.back(), lights[i].color);
+    }
+
+    ImageData image(rs.width, rs.height, 4);
+    rm.ray_march_image(cam, image, density_field, color_field);
+    image.oiio_write_to(filename, label);
+
+    std::cout << "Wrote to " << filename << '\n';
+}
+
 
 } // end namespace lux
