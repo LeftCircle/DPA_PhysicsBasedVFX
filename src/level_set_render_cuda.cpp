@@ -64,34 +64,27 @@ void cuda_render_tests(const std::string& filename){
     // Just keep as default for now
     float radius = 1.75;
     RenderSettings rs;
-    // rs.shadow_kappa = 50.0;
-    // rs.near_dist = rs.cam_dist - radius * 1.95;
-    // rs.far_dist = rs.near_dist + rs.model_halfsize * 2.75;
-    // //rs.shadow_kappa = 100.0;
-    // rs.model_halfsize = 2.1;
-    //rs.set_color_vs(1.0);
-    // rs.set_shadow_vs(2.0 * rs.model_halfsize / (float)500);
-    // rs.set_density_vs(2.0 * rs.model_halfsize / (float)350);
-    //rs.min_step = 0.00001;
-    rs.shadow_step = 0.0005;
+    rs.shadow_step = 0.005;
+    rs.model_halfsize = 1.75;
+    rs.set_density_vs(rs.model_halfsize * 2.0 / 500);
+    rs.set_shadow_vs(0.01);
+    rs.shadow_kappa = 10;
+    rs.kappa = 5;
 
     // Defining the density and color
     auto bunn = bunny_info();
     auto dens = bunn.density;
 
-    // Try stamping in a ton of faded noise
-    //dens = isf_sphere({}, 1.5);
-    // octave, fade, roughness, freq, fjump
-    // std::vector<float> mins = {1, 0.01, 0.01, 0.01, 1e-6};
-    // std::vector<float> maxes = {8, 4, 5, 5, 3};
-    // std::vector<float> defaults = {2.5, 1.5, 3, 1, 0};
     //auto noise = make_fspn(0.5, 3, {}, 2, 1.5);
-    auto noise = make_fspn(0.01, 1, {}, 1.0, 0);
-    auto fade = make_fade_factor({}, 0.1, radius);
-    dens = noise * fade * make_constant(10.0f);
+    // dens = isf_sphere({}, radius);
+    dens = make_pyro(dens, 3, 2, {}, 1, 0, 3.0, 0.3, 15);
 
     //dens = dens + (make_fspn(3, 3, {}, 3, 1.5) * mask(dens));
-    auto dens_grid = stamp_isf_to_grid(rs.get_density_vs(), 0.00001f, dens, rs.get_density_bounds());
+    std::cout << "stamping" << std::endl;
+    GridPtr<float> dens_grid = time_func("dens stamping", stamp_isf_to_grid, rs.get_density_vs(), 0.00001f, dens, rs.get_density_bounds(), "");
+    dens = make_grid_field<float>(dens_grid);
+    dens = dens * make_constant<float>(100);
+    std::cout << "stamp_done" << std::endl;
     bunn.color = make_constant<Color>(Color(1, 1, 1.0, 0));
     auto col_grid = stamp_color_to_grid(bunn.color, rs.get_color_bounds(), rs.get_color_vs());
     Camera cam;
@@ -109,7 +102,7 @@ void cuda_render_tests(const std::string& filename){
     PointLight rim(Color(0.001, 0.001, 1.0, 0), rotation(Vector(0, 0, -1.5 * hw), Vector(0, 1, 0), angle), rs.shadow_kappa * 0.1);
 
     std::vector<PointLight> lights = {key, rim, fill};
-    auto key_grid = make_dsm_grid(dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[0], rs.shadow_step, lights[0].kappa);
+    auto key_grid = time_func("First shadow", make_dsm_grid, dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[0], rs.shadow_step, lights[0].kappa);
     auto rim_grid = make_dsm_grid(dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[1], rs.shadow_step, lights[1].kappa);
     auto fill_grid = make_dsm_grid(dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[2], rs.shadow_step, lights[2].kappa);
    
@@ -144,9 +137,9 @@ void render_wedges(
     int shadow_voxels_per_side = 300;
     
     // octave, fade, roughness, freq, fjump
-    std::vector<float> mins = {1, 0.01, 0.01, 0.01, 1e-6};
-    std::vector<float> maxes = {8, 4, 5, 5, 3};
-    std::vector<float> defaults = {2.5, 1.5, 3, 1, 0};
+    std::vector<float> mins = {1, 0.01, 0.00, 0.01, 1e-6};
+    std::vector<float> maxes = {8, 4, 1, 5, 3};
+    std::vector<float> defaults = {2.5, 1.5, 0.5, 2, 0};
     std::vector<InterpFunc> interps = {lerp, lerp, lerp, lerp, lerp};
     std::vector<std::string> names = {"octave", "fade", "roughness", "freq", "fjump"};
     
@@ -170,7 +163,7 @@ void render_wedges(
 
     //for (int i = 0; i < mins.size(); i++){
     auto col_grid = stamp_color_to_grid(make_constant<Color>(Color(1, 1, 1, 0)), rs.get_color_bounds(), rs.get_color_vs());
-    for (int frame = 75; frame < total_frames; frame++) {
+    for (int frame = 0; frame < total_frames; frame++) {
         const size_t param = frame / frames_per_param; // 0..4
         const int frame_in_segment = frame % frames_per_param;
         const float t = (float)(frame_in_segment) / (float)(frames_per_param - 1);
@@ -219,6 +212,124 @@ void render_wedges(
         auto key_grid = make_dsm_grid(density_field, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[0], rs.shadow_step, lights[0].kappa);
         auto fill_grid = make_dsm_grid(density_field, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[1], rs.shadow_step, lights[1].kappa);
         auto rim_grid = make_dsm_grid(density_field, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[2], rs.shadow_step, lights[2].kappa);
+        std::vector<GridPtr<float>> dsms = {key_grid, fill_grid, rim_grid};
+
+        auto filename = path + name + "." + StringFuncs::get_zero_padded_number_string(frame, 4) + ".exr";
+        std::ostringstream label;
+        label << "octaves: " << values[0]
+            << "  fade: " << values[1]
+            << "  roughness: " << values[2]
+            << "  freq: " << values[3]
+            << "  fjump: " << values[4];
+        cuda_render_frame_with_dsm(rs, dens_grid, col_grid, dsms, lights, cam, filename, label.str());   
+    }
+}
+
+void render_pyro_wedges(
+    std::string path,
+    std::string name
+){
+    float radius = 2.0;
+    int frames_per_param = 125;
+    
+    auto smoothstep = [](float x) -> float {
+        x = std::clamp(x, 0.0f, 1.0f);
+        return x * x * ( 3.0 - 2.0 * x);
+    };
+    auto lerp = [](float a, float b, float t){
+        return a + t * (b - a);
+    };
+    auto log_lerp = [lerp](float a, float b, float t){
+        return std::expf(lerp(std::log(a), std::log(b), t));
+    };
+    using InterpFunc = std::function<float(float, float, float)>;
+
+    int rotation_frames = 72;
+    
+    int density_voxels_per_side = 850;
+    int shadow_voxels_per_side = 550;
+    
+    // octave, gamma, freq, fjump
+    std::vector<float> mins = {1, 0.01, 0.01, 1e-6};
+    std::vector<float> maxes = {8, 5, 5, 5};
+    std::vector<float> defaults = {2.5, 1, 1.5, 1.5};
+    std::vector<InterpFunc> interps = {lerp, lerp, lerp, lerp, lerp};
+    std::vector<std::string> names = {"octave", "gamma", "freq", "fjump"};
+    
+    int total_frames = frames_per_param * mins.size();
+    RenderSettings rs;
+
+    rs.near_dist = rs.cam_dist - radius * 1.95;
+    rs.far_dist = rs.near_dist + rs.model_halfsize * 2.75;
+    rs.model_halfsize = 2.1;
+    rs.set_shadow_vs(2.0 * rs.model_halfsize / (float)shadow_voxels_per_side);
+    rs.set_density_vs(2.0 * rs.model_halfsize / (float)density_voxels_per_side);
+    rs.min_step = 0.0001;
+    rs.shadow_step = 0.0002;
+    rs.shadow_kappa = 5;
+    //rs.kappa = 5;
+    const float dens_mult = 10.0;
+    Camera cam;
+    Vector eye = Vector(0, 0, 10);
+    Vector view = Vector(0, 0, -1);
+    cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+    const auto hw = rs.model_halfsize;
+
+    auto bunn = bunny_info();
+    auto dens = bunn.density;
+
+    Vector trans(0.1, 0, 0);
+    auto vel = 0.01;
+    //for (int i = 0; i < mins.size(); i++){
+    auto col_grid = stamp_color_to_grid(make_constant<Color>(Color(1, 1, 1, 0)), rs.get_color_bounds(), rs.get_color_vs());
+    for (int frame = 52; frame < total_frames; frame++) {
+        const size_t param = frame / frames_per_param; // 0..4
+        const int frame_in_segment = frame % frames_per_param;
+        const float t = (float)(frame_in_segment) / (float)(frames_per_param - 1);
+        const float eased_t = smoothstep(t);
+
+        auto values = defaults;
+        values[param] = interps[param](mins[param], maxes[param], eased_t);
+        for (const auto& name : names){
+            std::cout << name << " ";
+        }
+        std::cout << std::endl;
+        for (const auto& val : values){
+            std::cout << val << " ";
+        }
+        std:: cout << std::endl;
+        auto pyro = make_pyro(
+            dens,
+            3,
+            values[0],
+            trans * vel * frame,
+            values[2],
+            values[3],
+            0.75,
+            values[1],
+            1
+        );
+        GridPtr<float> dens_grid = time_func("dens stamping", stamp_isf_to_grid, rs.get_density_vs(), 0.00001f, pyro, rs.get_density_bounds(), "");
+        auto stamped_dens = make_grid_field<float>(dens_grid);
+        stamped_dens = stamped_dens * make_constant<float>(50);
+
+
+        float angle = DEGTORAD(360.0 / rotation_frames * frame);
+        PointLight key(Color(1.0, 0.001, 0.001, 0), rotation(Vector(0, 1.5 * hw, 1.5 * hw), Vector(0, 1, 0), angle), rs.shadow_kappa);
+        PointLight fill(Color(0.001, 1.0, 0.001, 0), rotation(Vector(0, -1.5 * hw, 0), Vector(0, 1, 0), angle), rs.shadow_kappa * 0.4);
+        PointLight rim(Color(0.001, 0.001, 1.0, 0), rotation(Vector(0, 0, -1.5 * hw), Vector(0, 1, 0), angle), rs.shadow_kappa * 0.1);
+        std::vector<PointLight> lights = {key, fill, rim};
+        
+
+        Vector eye = Vector(0, 0, 10);
+        Vector view = Vector(0, 0, -1);
+        eye = rotation(eye, Vector(0, 1, 0), angle);
+        view = rotation(view, Vector(0, 1, 0), angle);
+        cam.setEyeViewUp(eye, view, Vector(0, 1, 0));
+
+        auto key_grid = time_func("dsm", make_dsm_grid, stamped_dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[0], rs.shadow_step, lights[0].kappa);
+        auto fill_grid = make_dsm_grid(stamped_dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[1], rs.shadow_step, lights[1].kappa);
+        auto rim_grid = make_dsm_grid(stamped_dens, rs.get_shadow_vs(), rs.get_shadow_bounds(), lights[2], rs.shadow_step, lights[2].kappa);
         std::vector<GridPtr<float>> dsms = {key_grid, fill_grid, rim_grid};
 
         auto filename = path + name + "." + StringFuncs::get_zero_padded_number_string(frame, 4) + ".exr";

@@ -26,7 +26,8 @@ int main(int argc, char** argv){
 	//render_bunny_in_ajax(file_name, "/human");
 	// cuda_render_bunny(file_name, "/cuda_bunny");
 	//cuda_render_tests(file_name);
-	render_wedges(file_name, "/wedges");
+	//render_pyro_wedges(file_name, "/bunny_pyro_wedges_thinner_v02");
+	render_wedges(file_name, "/wedges_v02");
 	//profile_cuda();
 
 	// Test out fspn

@@ -40,6 +40,10 @@ void render_wedges(
     std::string name
 );
 
+void render_pyro_wedges(
+    std::string path,
+    std::string name
+);
 
 
 

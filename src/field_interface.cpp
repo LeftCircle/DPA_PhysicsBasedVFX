@@ -1,4 +1,5 @@
 #include "field_interface.h"
+#include "LinearAlgebra.h"
 
 namespace lux{
 
@@ -20,8 +21,25 @@ VolumeSPtr<float> cos(const VolumeSPtr<float>& a){
     return std::make_shared<CosField>(a);
 }
 
+vspf abs(const vspf& a){
+    auto eval = [a](const Vector& v){
+        return std::abs(a->eval(v));
+    }; 
+    return funcfield<float>(eval);
+}
+
 VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const VolumeSPtr<float>& to_power){
     return std::make_shared<PowField>(a, to_power);
+}
+
+vspf pow(const vspf& a, float power){
+    auto eval = [a, power](const Vector& v){
+        return std::powf(a->eval(v), power);
+    };
+    auto grad = [a, power](const Vector& p){
+        return power * std::powf(a->eval(p), power - 1.0) * a->grad(p);
+    };
+    return funcfield<float>(eval, grad);
 }
 
 vspf union_fields(const vspf a, const vspf b){
@@ -87,6 +105,24 @@ Vector smoothstep_lerp(
     return a + (b - a) * t;
 }
 
+vspf make_pyro(
+    const vspf& f,
+    float r, // roughness
+    float octaves,
+    const Vector& translation,
+    float freq,
+    float fjump,
+    float amp,
+    float gamma,
+    int iters
+){
+    auto fspn = make_fspn(r, octaves, translation, freq, fjump);
+    auto iter_npt = make_iteratedNPT(f, iters);
+    auto fspn_of_iternpt = make_warp_field(fspn, iter_npt);
+    return f + pow(abs(fspn_of_iternpt), gamma) * make_constant<float>(amp);
+}
+
+
 // ---------------------------------------------------------------------------------
 // fields!
 // ---------------------------------------------------------------------------------
@@ -126,15 +162,58 @@ VolumeSPtr<float> isf_ellipse(const Vector& center, const Vector& normal, float 
     return std::make_shared<EllipseField>(center, normal, r_major, r_minor);
 }
 
-
 VolumeSPtr<float> isf_cylinder(const Vector& center, const Vector& normal, float r, float h){
     vspf cyl = std::make_shared<CylinderField>(center, normal, r, h);
-    // float halfh = h * 0.5;
-    // auto p0 = make_plane(center + halfh * normal, -normal);
-    // auto p1 = make_plane(center - halfh * normal, normal);
-    // cyl = cutout(cyl, p0);
-    // cyl = cutout(cyl, p1);
     return cyl;
+}
+
+
+// ---------------------------------------------------------------------------------
+// Vector fields!
+// ---------------------------------------------------------------------------------
+
+VSPtr<Vector> make_identity_field(){
+    auto eval = [](const Vector& v){
+        return v;
+    };
+    auto grad = [](const Vector& v){
+        return unitMatrix();
+    };
+    return funcfield<Vector>(eval, grad);
+}
+
+VSPtr<Vector> make_grad_field(const vspf& f){
+    return funcfield<Vector>([f](const Vector& v){ return f->grad(v); });
+}
+
+// VSPtr<float> make_nearpoint_transform(const vspf& f){
+//     auto eval = [f](const Vector& p){
+//         Vector grad_f = f->grad(p);
+//         auto mag_sq_gradf = grad_f.magnitude_squared();
+//         return p - (f->eval(p) * grad_f) / mag_sq_gradf;
+//     };
+//     return funcfield<float>(eval);
+// }
+
+VSPtr<Vector> make_eval_dot_grad_over_gradsq(const vspf& f){
+    auto eval = [f](const Vector& v){
+        auto grad_f = f->grad(v);
+        return (f->eval(v) * grad_f) / (grad_f * grad_f);
+    };
+    return funcfield<Vector>(eval);
+}
+
+VSPtr<Vector> makeNPT(const vspf& f){
+    return make_identity_field() - make_eval_dot_grad_over_gradsq(f);
+}
+
+VSPtr<Vector> make_iteratedNPT(const vspf& f, int iters){
+    auto npt = makeNPT(f);
+    auto result = make_identity_field();
+    for(int i = 0; i < iters; i++){
+        result = make_warp_field(result, npt);
+    }
+    return result;
 }
 
 

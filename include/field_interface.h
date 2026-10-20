@@ -21,6 +21,7 @@ namespace lux{
 // ---------------------------------------------------------------------------------
 
 using vspf = VolumeSPtr<float>;
+using vspv = VSPtr<Vector>;
 
 template<typename T, typename Eval, typename Grad = std::nullptr_t>
 VolumeSPtr<T> funcfield(
@@ -102,6 +103,20 @@ VolumeSPtr<float> sin(const VolumeSPtr<float>& a);
 VolumeSPtr<float> cos(const VolumeSPtr<float>& a);
 
 VolumeSPtr<float> pow(const VolumeSPtr<float>& a, const VolumeSPtr<float>& to_power);
+vspf pow(const vspf& a, float power);
+vspf abs(const vspf& a);
+
+vspf make_pyro(
+    const vspf& f,
+    float r, // roughness
+    float octaves,
+    const Vector& translation,
+    float freq,
+    float fjump,
+    float amp,
+    float gamma,
+    int iters = 1
+);
 
 // ---------------------------------------------------------------------------------
 // constructive solid geometry
@@ -195,6 +210,34 @@ VSPtr<T> make_grid_field(const typename GridTypes<T>::GridType grid){
     };
     return funcfield<T>(eval_func);
 }
+
+
+
+// ---------------------------------------------------------------------------------
+// Volumes!
+// ---------------------------------------------------------------------------------
+
+template <typename T>
+VSPtr<T> make_warp_field(const VSPtr<T>& f, const VSPtr<Vector> map){
+    auto eval = [f, map](const Vector& p){
+        return f->eval(map->eval(p));
+    };
+    auto grad = [f, map](const Vector& p){
+        return map->grad(p) * f->grad(map->eval(p));
+    };
+    return funcfield<T>(eval, grad);
+}
+
+// The identity field has eval f(x) = x and grad = Identity
+//template <typename Vec>
+VSPtr<Vector> make_identity_field();
+VSPtr<Vector> make_grad_field(const vspf& f);
+// VSPtr<float> make_nearpoint_transform(const vspf& f);
+VSPtr<Vector> makeNPT(const vspf& f);
+VSPtr<Vector> make_iteratedNPT(const vspf& f, int iters);
+VSPtr<Vector> make_eval_dot_grad_over_gradsq(const vspf& f);
+
+
 
 } // end namespace lux
 

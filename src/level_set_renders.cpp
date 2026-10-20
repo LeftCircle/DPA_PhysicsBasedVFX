@@ -5,7 +5,7 @@ namespace lux{
 
 RenderInfo bunny_info(){
     float voxel_size = 0.001;
-    float half_width = 3;
+    float half_width = 10;
     std::string obj_filepath = "/home/left/programming/DPA_PhysicsBasedVFX/third_party/starter/models/bunny_fixed.obj";
     ObjReader<Vector> reader(obj_filepath);
     
