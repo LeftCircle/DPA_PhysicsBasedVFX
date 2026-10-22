@@ -1,8 +1,33 @@
-# Hw 1: Humanoid
+# Hw 2: Wisps
 
-The video for the turnaround is in the root diractory: cato_humanoid.mkv. 
+Videos for wisps, pyro, and noise are in 
+images/wisps -> wisps
+images/pyro_wedges -> pyro
+images/wedges -> noise
 
-The images used to generate the humanoid can be found in the images folder. See wizard_render.%04d.exr
+look for .mov files for the videos!
+
+noise parameters:
+std::vector<float> mins = {1, 0.01, 0.00, 0.01, 1e-6};
+std::vector<float> maxes = {8, 4, 1, 5, 3};
+std::vector<float> defaults = {2.5, 1.5, 0.5, 2, 0};
+std::vector<InterpFunc> interps = {lerp, lerp, lerp, lerp, lerp};
+std::vector<std::string> names = {"octave", "fade", "roughness", "freq", "fjump"};
+
+pyro parameters:
+std::vector<float> mins = {1, 0.01, 0.01, 1e-6, 0.01};
+std::vector<float> maxes = {8, 5, 5, 5, 5};
+std::vector<float> defaults = {3, 1, 2, 2, 2};
+std::vector<InterpFunc> interps = {lerp, lerp, lerp, lerp, lerp};
+std::vector<std::string> names = {"octave", "gamma", "freq", "fjump", "amp"};
+
+wisp parameters: (for wisp_out_v02.mov)
+std::vector<float> mins = {0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.1, 0.1};
+std::vector<float> maxes = {10, 10, 10, 10, 5, 5, 5, 5, 5, 1, 1};
+std::vector<float> defaults = {0.75, 1, 3, 5, 2, 1, 2, 1.5, 1, 0.1, 0.2};
+std::vector<InterpFunc> interps = {lerp, lerp, lerp, lerp, lerp, lerp, lerp, lerp, lerp, lerp, lerp};
+std::vector<std::string> names = {"clump", "pscale", "o1", "o2", "f1" "f2", "fj1", "fj2", "dips", "rough1", "rough2"};
+
 
 Most of the code is in in the /include and /src folders.
 

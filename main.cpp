@@ -26,9 +26,10 @@ int main(int argc, char** argv){
 	//render_bunny_in_ajax(file_name, "/human");
 	// cuda_render_bunny(file_name, "/cuda_bunny");
 	//cuda_render_tests(file_name);
-	//render_pyro_wedges(file_name, "/bunny_pyro_wedges_thinner_v02");
-	render_wedges(file_name, "/wedges_v02");
+	//render_pyro_wedges(file_name, "/sphere_pyro");
+	// render_wedges(file_name, "/wedges_v02");
 	//profile_cuda();
+	render_wisp_wedges(file_name, "/wis_wedges_v03");
 
 	// Test out fspn
 	// int w = 1920;

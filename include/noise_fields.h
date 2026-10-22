@@ -12,6 +12,16 @@
 
 namespace lux{
 
+template<typename T, typename Vec>
+T fspn(const FSVals& vals, const Vec& v){
+    return fractal_sum<T, Vec>(
+        v,
+        [](const Vec& v){
+            return db::perlin<T>(v.x(), v.y(), v.z());
+        },
+        vals
+    );
+}
 
 vspf make_fspn(
     float r, // roughness

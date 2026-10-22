@@ -71,7 +71,7 @@ class FDGradHandler
        }
     }
 
-    const int nbTerms() const { return _nb_grad; }
+    int nbTerms() const { return _nb_grad; }
 
     void setStep( const double dx )
     {
@@ -83,12 +83,12 @@ class FDGradHandler
        if( dx > 0 && dy > 0 && dz > 0 ){ _dx = dx; _dy = dy; _dz = dz; }
     }
 
-    const double step() const { return _dx; }
-    const double step_x() const { return _dx; }
-    const double step_y() const { return _dy; }
-    const double step_z() const { return _dz; }
+    double step() const { return _dx; }
+    double step_x() const { return _dx; }
+    double step_y() const { return _dy; }
+    double step_z() const { return _dz; }
 
-    const double coefficient( const int n ) const
+    double coefficient( const int n ) const
     {
        if( n > 0 && n <= _nb_grad ){ return _grad_coefficients[_nb_grad-1][n-1]; }
        return 0.0;

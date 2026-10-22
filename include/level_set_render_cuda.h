@@ -45,6 +45,11 @@ void render_pyro_wedges(
     std::string name
 );
 
+void render_wisp_wedges(
+    std::string path,
+    std::string name
+);
+
 
 
 } // end namespace lux

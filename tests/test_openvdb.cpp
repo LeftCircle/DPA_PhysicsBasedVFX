@@ -224,7 +224,7 @@ TEST_CASE("Test create level set from obj"){
     };
 
     REQUIRE(sample_grid(large_val) == hw * voxelsize);
-    REQUIRE(abs(sample_grid(verts[0])) < hw * voxelsize);
+    REQUIRE(std::abs(sample_grid(verts[0])) < hw * voxelsize);
     REQUIRE(sample_grid(grid->worldToIndex({0, 0, 0})) > -hw * voxelsize);
 
 }

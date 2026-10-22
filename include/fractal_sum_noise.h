@@ -1,19 +1,36 @@
 #pragma once
 
+#include <utility>
+
+#include "Vector.h"
+
+namespace lux{
 
 struct FSVals{
-    float r;
-    float octaves;
-    Vector translation;
-    float freq; 
-    float fjump;
+    FSVals() = default;
+    FSVals(
+        float r_,
+        float octaves_,
+        Vector translation_,
+        float freq_,
+        float fjump_
+    ) : r(r_), octaves(octaves_), translation(std::move(translation_)), freq(freq_), fjump(fjump_) {}
+    float r = 0.5;
+    float octaves = 2.0;
+    Vector translation = {0, 0, 0};
+    float freq = 1.0;
+    float fjump = 1.0;
 };
 
 template <typename T, typename Vec, typename Func>
-constexpr T fractal_sum(const Vec& eval_point, Func func, const FSVals&& vals){
-    return fractal_sum(
+constexpr T fractal_sum(
+    const Vec& eval_point,
+    Func&& func,
+    const FSVals& vals
+){
+    return fractal_sum<T, Vec>(
         eval_point,
-        func,
+        std::forward<Func>(func),
         vals.r,
         vals.octaves,
         vals.translation,
@@ -25,7 +42,7 @@ constexpr T fractal_sum(const Vec& eval_point, Func func, const FSVals&& vals){
 template <typename T, typename Vec, typename Func>
 constexpr T fractal_sum(
     const Vec& eval_point,
-    Func func,
+    Func&& func,
     float r, // roughness
     float octaves,
     const Vec& translation,
@@ -49,6 +66,6 @@ constexpr T fractal_sum(
 
 
 
-
+} // end namespace lux
 
 

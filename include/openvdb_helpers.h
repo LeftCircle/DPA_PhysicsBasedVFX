@@ -6,6 +6,7 @@
 #include <openvdb/tools/ValueTransformer.h>
 #include <openvdb/tools/MeshToVolume.h>
 #include <tbb/parallel_for.h>
+#include <cmath>
 
 #include "field_interface.h"
 #include "Vector.h"
@@ -123,6 +124,40 @@ GridPtr<T> stamp_grid_parallel(
         save_to_disk(result, filename);
     }
     return result;
+}
+
+template<typename Accessor, typename T>
+void trilinear_deposit(
+    Accessor& accessor,
+    const openvdb::math::Transform& transform,
+    const openvdb::Vec3s& worldPos,
+    T val)
+{
+    const openvdb::Vec3d ijk = transform.worldToIndex(worldPos);
+
+    const int i = static_cast<int>(std::floor(ijk.x()));
+    const int j = static_cast<int>(std::floor(ijk.y()));
+    const int k = static_cast<int>(std::floor(ijk.z()));
+
+    const auto fx = ijk.x() - i;
+    const auto fy = ijk.y() - j;
+    const auto fz = ijk.z() - k;
+
+    for (int dz = 0; dz <= 1; ++dz) {
+        for (int dy = 0; dy <= 1; ++dy) {
+            for (int dx = 0; dx <= 1; ++dx) {
+                const auto weight =
+                    (dx ? fx : 1.0 - fx) *
+                    (dy ? fy : 1.0 - fy) *
+                    (dz ? fz : 1.0 - fz);
+
+                if (weight == 0.0) continue;
+
+                const openvdb::Coord c(i + dx, j + dy, k + dz);
+                accessor.setValueOn(c, accessor.getValue(c) + val * weight);
+            }
+        }
+    }
 }
 
 

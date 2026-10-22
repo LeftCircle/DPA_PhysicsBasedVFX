@@ -162,7 +162,7 @@ __global__ void raymarch_kernel(
     float transmittance = 1.0f;
     
     const float voxel_step = static_cast<float>(render_data.density->voxelSize()[0]);
-    const float step = fminf(max_step, fmaxf(min_step, voxel_step));
+    const float step = min_step;
     
     if (step <= 0.f) {
         output[pixel] = make_float4(0.f, 0.f, 0.f, 0.f);
@@ -177,7 +177,10 @@ __global__ void raymarch_kernel(
     const float rand_unif = curand_uniform(&rng);
     const float randomStep = min_step + rand_unif * (max_step - min_step);
     const float start = near_dist + randomStep;
-    for (float t = start; t < far_dist && transmittance > 1e-3f; t += step)
+    const float step_diff = max_step - min_step;
+    //for (float t = start; t < far_dist && transmittance > 1e-3f; t += step)
+    float t = start;
+    while (t < far_dist && transmittance > 1e-4f)
     {
         const float3 world = make_float3(
             cam.eye.x + t * dir.x,
@@ -207,6 +210,7 @@ __global__ void raymarch_kernel(
             radiance.z += transmittance * alpha * color.z * clights.z;
             transmittance *= nextT;
         }
+        t += min_step + curand_uniform(&rng) * step_diff;
     }
     rng_states[pixel] = rng;
 
