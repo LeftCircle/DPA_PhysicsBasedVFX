@@ -312,3 +312,30 @@ auto eval_func = [grid](const Vector& p) {
 ```
 
 The first approach is preferable because it directly expresses the intended sampling behavior.
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+To check for class functions at compile time:
+template <typename F, typename = void>
+struct has_clear_cache : std::false_type {};
+
+template <typename F>
+struct has_clear_cache<F, std::void_t<
+    decltype(std::declval<F&>().clear_cache())
+>> : std::true_type {};
+
+template <typename Ptr>
+void clear_cache_if_supported(const Ptr& field) {
+    using Field = typename Ptr::element_type;
+
+    if constexpr (has_clear_cache<Field>::value) {
+        if (field) field->clear_cache();
+    }
+}

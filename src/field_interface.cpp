@@ -131,7 +131,7 @@ vspf make_pyro(
 VolumeSPtr<float> make_plane(const Vector& point, const Vector& normal) {
     return std::make_shared<PlaneField>(point, normal);
 }
-
+    
 
 VolumeSPtr<float> isf_sphere(const Vector& center, const float radius){
     return std::make_shared<SphereField>(center, radius);

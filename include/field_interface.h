@@ -12,6 +12,7 @@
 #include "implicit_fields.h"
 #include "constructive_solid_geometry.h"
 #include "noise_fields.h"
+#include "recursive_mem.h"
 
 namespace lux{
 
@@ -89,6 +90,21 @@ float smoothstep(float edge0, float edge1, float x);
 
 Vector smoothstep_lerp(const Vector& a, const Vector& b, float t);
 
+template<typename T>
+VSPtr<T> make_memofield(const VSPtr<T>& a){
+    return std::make_shared<MemoField<T>>(a);
+}
+
+template <typename T>
+vspf make_clear_cache_field(const VSPtr<T>& a){
+    auto eval = [a](const Vector& p){
+        a->clear_cache();
+        return a->eval(p);
+    };
+    auto grad = [a](const Vector& p){ return a->grad(p); };
+    return funcfield<T>(eval, grad);
+}
+
 
 // ---------------------------------------------------------------------------------
 // float operations
@@ -117,6 +133,19 @@ vspf make_pyro(
     float gamma,
     int iters = 1
 );
+
+template<typename T>
+VSPtr<T> make_advect_semi_lagrange(const VSPtr<T>& a, const vspv& u, float dt){
+    auto eval = [a, u, dt](const Vector& p){
+        return a->eval(p - u->eval(p) * dt);
+    };
+    auto grad = [a, u, dt](const Vector& p){
+        auto x = p - u->eval(p) * dt;
+        auto M = unitMatrix() - (u->grad(p) * dt);
+        return M * a->grad(x);
+    };
+    return funcfield<T>(eval, grad);
+}
 
 // ---------------------------------------------------------------------------------
 // constructive solid geometry

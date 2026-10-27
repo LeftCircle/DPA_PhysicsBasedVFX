@@ -8,6 +8,7 @@
 
 #include "volume.h"
 #include "LinearAlgebra.h"
+#include "recursive_mem.h"
 
 namespace lux{
 
@@ -35,6 +36,97 @@ public:
 private:
 	Func _function;
 	GradFunc _grad_func;
+};
+
+
+// template <typename T>
+// class MemoizedField : public Volume<T> {
+// public:
+//     using Value = typename Volume<T>::volumeDataType;
+//     using Grad = typename Volume<T>::volumeGradType;
+
+// private:
+//     // make_memoized_r calls the wrapped function as f(memoizer, args...).
+//     struct Eval {
+//         VSPtr<T> field;
+
+//         template <typename Memo>
+//         Value operator()(const Memo&, const Vector& p) const {
+//             return field->eval(p);
+//         }
+//     };
+
+//     using Memo = decltype(
+//         make_memoized_r<Value(const Vector&)>(Eval{})
+//     );
+
+// public:
+//     explicit MemoizedField(VSPtr<T> field)
+//         : _field(std::move(field)),
+//           _memo(make_memoized_r<Value(const Vector&)>(Eval{_field}))
+//     {}
+
+//     Value eval(const Vector& p) const override {
+//         return _memo(p);
+//     }
+
+//     Grad grad(const Vector& p) const override {
+//         return _field->grad(p);
+//     }
+
+//     void clear_cache() {
+//         _memo.clear_cache();
+//     }
+
+// private:
+//     VSPtr<T> _field;
+//     mutable Memo _memo;
+// };
+
+
+template <typename T>
+class MemoField : public Volume<T> {
+public:
+    using Value = typename Volume<T>::volumeDataType;
+    using Grad = typename Volume<T>::volumeGradType;
+
+private:
+    struct Eval {
+        VSPtr<T> field;
+
+        template <typename Memo>
+        Value operator()(const Memo&, const Vector& p) const {
+            return field->eval(p);
+        }
+    };
+
+    using Mem = decltype(
+        make_memoized_r<Value(const Vector&)>(Eval{})
+    );
+
+public:
+    explicit MemoField(VSPtr<T> field)
+        : _memoize_field(std::move(field)),
+          _mem(make_memoized_r<Value(const Vector&)>(
+              Eval{_memoize_field}
+          ))
+    {}
+
+    const Value eval(const Vector& p) const override {
+        return _mem(p);
+    }
+
+    const Grad grad(const Vector& p) const override {
+        return _memoize_field->grad(p);
+    }
+
+    void clear_cache() override {
+        _mem.clear_cache();
+    }
+
+private:
+    VSPtr<T> _memoize_field;
+    mutable Mem _mem;
 };
 
 
@@ -411,6 +503,5 @@ std::shared_ptr<Volume<T>> operator-(const VolumeSPtr<T> a)
 
 
 } // end namespace lux
-
 
 

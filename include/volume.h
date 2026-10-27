@@ -177,6 +177,7 @@ class Volume : public VolumeBase
       }
       return FDGradient<volumeDataType, volumeGradType>(valueX, valueY, valueZ); 
    }
+   virtual void clear_cache() {};
 
    virtual std::string typelabel() { return "unknown"; }
    virtual std::string documentation() { return "No documentation"; }
